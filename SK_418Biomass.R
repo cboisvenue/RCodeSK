@@ -173,7 +173,7 @@ write.table(biom.all,file="C:/Celine/CelineSync/RES_Work/Work/JoanneWhite/SK_wor
 plot.biom <- filter(biom.all,OFF_PLOT_TREE!="Y" | is.na(OFF_PLOT_TREE)) %>%
   group_by(PLOT_ID,YEAR) %>%
   summarise(sum(biomass))
-names(plot.biom) = c("PLOT_ID","YEAR","avgbiom")
+names(plot.biom) = c("PLOT_ID","YEAR","sumbiom")
 # get plot size
 plot.size <-read.table("C:/Celine/CelineSync/RES_Work/Work/JoanneWhite/SK_work/GrowthRaster/BiomassEstimation/measurement_header.csv",sep=",", header=TRUE)
 plot.size <- plot.size[,c(1,3)]
@@ -181,7 +181,7 @@ plot.size <- plot.size[,c(1,3)]
 biom.ha <- left_join(plot.biom,plot.size)
 biom.ha = unique(biom.ha)
 
-biom.ha1 <- mutate(biom.ha,biom.ha = avgbiom/PLOT_SIZE) %>%
+biom.ha1 <- mutate(biom.ha,biom.ha = sumbiom/PLOT_SIZE) %>%
   select(PLOT_ID,YEAR,PLOT_SIZE,biom.ha)
 sk.raw1 <- read.table("C:/Celine/Big_data/Data/01_RawFiles/SK/Release_2012-04/plot_header.csv", header=TRUE, sep=",")
 loc.raw = select(sk.raw1, LOC_ACCURACY, PLOT_ID,contains("Z13nad83"))
