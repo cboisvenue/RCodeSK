@@ -4,6 +4,9 @@
 # This script:
 # - Compare the parameters estimates from the PSP delta-biomass to the parameter 
 #   estimates from the RS delta-biomass.
+# - this is done for the 1st sample (lines 21 to 66)
+# - then 6 other RSsample-estimated parameter files are read in and all are compared
+#  on the same graph
 #
 # CBoisvenue Sept 16th, 2015
 #-----------------------------------------------------
@@ -64,11 +67,85 @@ b2.plot <- ggplot(data=b2psp, aes(y=value,x=stratum)) +
 ggsave(b2.plot, file="G:/RES_Work/Work/JoanneWhite/SK_work/GrowthRaster/Results/ParamCompare/b2.jpeg")
 # End Age slope graphical comparison----
 
+# Are samples consistent?
+# trying other samples to see if results are consistent
+#-------------------------------------------------------------------------------------
+s.no = c(1,2,3,4,5,6,99)
+
+for(i in 1:length(s.no)){
+  # read  
+  rss <- fread(paste(data.in,"DeltaBiomRsParams_s",s.no[i],".txt",sep=""),sep=",",header=TRUE)
+  setkey(rs,stratum,b)
+  
+  #graphs
+  b0rs <- rss[b=="b0"]
+  b0.s <- b0.plot + 
+    geom_boxplot(data=b0rs,aes(x=stratum,y=value, colour="red", alpha=.2)) 
+  ggsave(b0.s, file=paste("G:/RES_Work/Work/JoanneWhite/SK_work/GrowthRaster/Results/ParamCompare/b0s",s.no[i],".jpeg",sep=""))
+   
+  b1rs <- rss[b=="b1"]
+  b1.s <-  b1.plot  +
+    geom_boxplot(data=b1rs,aes(x=stratum,y=value, colour="red", alpha=.2)) 
+  ggsave(b1.s, file=paste("G:/RES_Work/Work/JoanneWhite/SK_work/GrowthRaster/Results/ParamCompare/b1s",s.no[i],".jpeg",sep=""))
+  
+  b2rs <- rss[b=="b2"]
+    b2.s <- b2.plot +
+      geom_boxplot(data=b2rs,aes(x=stratum,y=value, colour="red", alpha=.2))  
+    ggsave(b2.s, file=paste("G:/RES_Work/Work/JoanneWhite/SK_work/GrowthRaster/Results/ParamCompare/b2s",s.no[i],".jpeg",sep=""))
+    
+}
+# Results of sampling seem consistent-------------------------------------------------
+
+# working with the 1st sample (since they are all the same)
+# Calculate the mode for each param
+#-------------------------------------------------------------------------------------
+
+# try this function--------------------
+modeCalc <- function(data) {
+  # Function for mode estimation of a continuous variable
+  # Kernel density estimation by Ted Harding & Douglas Bates (found on RSiteSearch)	
+x<-data
+lim.inf=min(x)-1; lim.sup=max(x)+1
+
+hist(x,freq=FALSE,breaks=seq(lim.inf,lim.sup,0.2))
+s<-density(x,from=lim.inf,to=lim.sup,bw=0.2)
+n<-length(s$y)
+v1<-s$y[1:(n-2)];
+v2<-s$y[2:(n-1)];
+v3<-s$y[3:n]
+ix<-1+which((v1<v2)&(v2>v3))
+
+lines(s$x,s$y,col="red")
+points(s$x[ix],s$y[ix],col="blue")
+
+md <- s$x[which(s$y==max(s$y))] 
+
+return(md)
+
+}
+# function end------------------
+
+b0.modes <- b0rs[,.(mode=modeCalc(value)),by=stratum]
+b1.modes <- b1rs[,.(mode=modeCalc(value)),by=stratum]
+b2.modes <- b2rs[,.(mode=modeCalc(value))]
+# Modes calculated-------------------------------------------------------------------
+
+
 # NEXT?
-# create histograms of all RS values to get an idea of the mode?
-# calculate mode 
-# make curves from mode
-# try another set of samples to see of results compare
+# create histograms/lines of all RS values to get an idea of the mode?
+denslines <- function(data){
+  lim.inf=min(b2rs$value)-1; lim.sup=max(b2rs$value)+1
+  s<-density(b2rs$value,from=lim.inf,to=lim.sup,bw=0.2)
+  n<-length(s$y)
+  v1<-s$y[1:(n-2)];
+  v2<-s$y[2:(n-1)];
+  v3<-s$y[3:n]
+  ix<-1+which((v1<v2)&(v2>v3))
+  
+  dlines <- as.data.table(cbind(s$x,s$y))
+  dlines
+}
+dens <- density(,from=lim.inf,to=lim.sup,bw=0.2)
 
 
 
