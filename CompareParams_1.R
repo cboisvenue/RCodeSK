@@ -133,19 +133,41 @@ b2.modes <- b2rs[,.(mode=modeCalc(value))]
 
 # NEXT?
 # create histograms/lines of all RS values to get an idea of the mode?
-denslines <- function(data){
-  lim.inf=min(b2rs$value)-1; lim.sup=max(b2rs$value)+1
-  s<-density(b2rs$value,from=lim.inf,to=lim.sup,bw=0.2)
+densx <- function(data){
+  x<-data
+  lim.inf=min(x)-1; lim.sup=max(x)+1
+  s<-density(x,from=lim.inf,to=lim.sup,bw=0.2)
   n<-length(s$y)
   v1<-s$y[1:(n-2)];
   v2<-s$y[2:(n-1)];
   v3<-s$y[3:n]
   ix<-1+which((v1<v2)&(v2>v3))
   
-  dlines <- as.data.table(cbind(s$x,s$y))
-  dlines
+  dx <- s$x
+  return(dx)
 }
-dens <- density(,from=lim.inf,to=lim.sup,bw=0.2)
+densy <- function(data){
+  x<-data
+  lim.inf=min(x)-1; lim.sup=max(x)+1
+  s<-density(x,from=lim.inf,to=lim.sup,bw=0.2)
+  n<-length(s$y)
+  v1<-s$y[1:(n-2)];
+  v2<-s$y[2:(n-1)];
+  v3<-s$y[3:n]
+  ix<-1+which((v1<v2)&(v2>v3))
+  
+  dy <- s$y
+  return(dy)
+}
+
+b0dx <- b0rs[,.(x=densx(value)),by=stratum]
+b0dy <- b0rs[,.(y=densy(value)),by=stratum]
+b0dlines <- cbind(b0dx,b0dy[,y])
+b1dx <- b1rs[,.(x=densx(value)),by=stratum]
+b1dy <- b1rs[,.(y=densy(value)),by=stratum]
+b2dx <- b2rs[,.(x=densx(value))]
+b2dy <- b2rs[,.(y=densy(value))]
+
 
 
 
