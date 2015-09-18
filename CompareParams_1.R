@@ -127,9 +127,21 @@ return(md)
 
 b0.modes <- b0rs[,.(mode=modeCalc(value)),by=stratum]
 b1.modes <- b1rs[,.(mode=modeCalc(value)),by=stratum]
-b2.modes <- b2rs[,.(mode=modeCalc(value))]
-# Modes calculated-------------------------------------------------------------------
+b2.modes <- b2rs[,.(mode=modeCalc(value)),by=stratum]
 
+write.table(b0.modes,file=paste(data.in,"b0RSmodes.txt",sep=""),sep=",",row.names = FALSE)
+write.table(b1.modes,file=paste(data.in,"b1RSmodes.txt",sep=""),sep=",",row.names = FALSE)
+write.table(b2.modes,file=paste(data.in,"b2RSmodes.txt",sep=""),sep=",",row.names = FALSE)
+# Modes calculated---------------------
+
+# add to sample1 graphs--------------------------
+b0.plot2 <- b0.plot + geom_point(data=b0.modes,aes(x=stratum,y=mode,colour="red", size=2))
+b1.plot2 <- b1.plot + geom_point(data=b1.modes,aes(x=stratum,y=mode,colour="red", size=2))
+b2.plot2 <- b2.plot + geom_point(data=b2.modes,aes(x=stratum,y=mode,colour="red", size=2))
+
+ggsave(b0.plot2, file=paste(data.in,"b0wModes.jpeg",sep=""))
+ggsave(b1.plot2, file=paste(data.in,"b1wModes.jpeg",sep=""))
+ggsave(b2.plot2, file=paste(data.in,"b2wModes.jpeg",sep=""))
 
 # NEXT?
 # create histograms/lines of all RS values to get an idea of the mode?
@@ -163,6 +175,10 @@ densy <- function(data){
 b0dx <- b0rs[,.(x=densx(value)),by=stratum]
 b0dy <- b0rs[,.(y=densy(value)),by=stratum]
 b0dlines <- cbind(b0dx,b0dy[,y])
+# histograms not working...setting asside for now
+b0.hist <- ggplot(data=b0dlines, aes(x=x,y=V2)) + geom_line()
+plot(b0dlines)
+
 b1dx <- b1rs[,.(x=densx(value)),by=stratum]
 b1dy <- b1rs[,.(y=densy(value)),by=stratum]
 b2dx <- b2rs[,.(x=densx(value))]
