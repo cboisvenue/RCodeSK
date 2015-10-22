@@ -6,7 +6,7 @@
 # May 1, 2015
 # CBoisvenue
 # Revised June 4th, 2015
-# decision to calculate biomass with the DBH only equations to minimize erro inputs from height estimation
+# decision to calculate biomass with the DBH only equations to minimize error inputs from height estimation
 #
 #----------------------------------
 

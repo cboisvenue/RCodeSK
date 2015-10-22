@@ -230,7 +230,7 @@ NoWSMhat2 <- exp(NoWSMlhat2)
 NoWSMpred2 <- cbind(topredMM,NoWSMhat2)
 NoWSMbiom2 <- ggplot(data=NoWSMpred2,aes(x=age1,y=NoWSMhat,group=stratum,colour=stratum)) + geom_line(size=1.5)
 NoWSMbiom2 + ggtitle("Predicting delta biomass t/ha by Strata removed SWM") +  scale_fill_brewer(palette="Spectral")
-# does not seem to change the curves, does improve the AIC though...
+# does not seem to change the curves, does improce the AIC though...
 # going with the "no SWM" version
 ggsave("FINALBiomassYieldCurves_oneStrataforSpruce.jpeg")
 
@@ -294,3 +294,7 @@ b2 <- mutate(b2,stratum="ALL",n=1353,b="b2",b.er = qnorm(0.975)*se/sqrt(n),lower
 param.CI <- rbind(b0,b1,b2)
 
 write.table(param.CI,file="BiomModelParamsCI.txt",sep=",",row.names=FALSE)
+
+ci.plot <- ggplot(data=param.CI, aes(y=value,x=stratum, group=b, colour=b)) + 
+  geom_errorbar(aes(ymin=lower.b,ymax=upper.b), width=.2) + geom_point()
+# ggsave(file="BiomassMEMparamsCI.jpeg",plot=ci.plot)

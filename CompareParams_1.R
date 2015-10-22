@@ -38,7 +38,7 @@ b0.plot <- ggplot(data=b0psp, aes(y=value,x=stratum)) +
   theme(legend.position="none") +
   ggtitle("Intercept values comparison, RS and PSP") +
   theme(plot.title=element_text(face="bold",size=20))
-ggsave(b0.plot, file="G:/RES_Work/Work/JoanneWhite/SK_work/GrowthRaster/Results/ParamCompare/b0.jpeg")
+#ggsave(b0.plot, file="G:/RES_Work/Work/JoanneWhite/SK_work/GrowthRaster/Results/ParamCompare/b0.jpeg")
 # End intercept graphical comparison----
 
 # graphically compare the logAge slopes only

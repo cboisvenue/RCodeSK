@@ -17,6 +17,8 @@
 # - Create a file for that set of samples and save it
 # - plot the parameter values 
 #
+# - repeat all the sampling to see if results are consistent
+#
 # CBoisvenue
 # September 9th, 2015
 #---------------------------------------------------------------
@@ -174,7 +176,74 @@ ggsave(file="H:/saskatchewan/Celine/RsParameters/DeltaBiomRsParams.jpeg")
 #
 # Graph completed-----------------------------------------------------------------------
 
-
+# repeated sampling
+#--------------------------------------------------------------------------------------
+for(j in 1:5){
+  pix.sample <- sample(pix$RasterID,10000,replace=FALSE) #,prob=pix$probPSP
+  sampleX <- dt2[RasterID %in% pix.sample]
+  
+  # END 1st sample---------------
+  
+  # Fit the model to 1st sample
+  #------------------------------------------
+  library(lme4)
+  startTime <- Sys.time()
+  memPA.s1 <- lmer(formula= l.dbiom~strataPSP+logAge*strataPSP+age+(1|RasterID),data=sampleX)
+  endTime <- Sys.time()
+  fit.time <- endTime-startTime #Time difference of 7.820782 secs
+  
+  # Note: with each sample, the parameters and strata are not in the same order
+  # 1st solution: 
+  # make a df with the 1st and 2nd columns of the parameter matrix for the 1st sample
+  # then loop 99 times to select a different sample, fit a model, 
+  # and add the rows to the initial sample df
+  
+  # initial df
+  #-------------------
+  paramsPA <- as.data.frame(cbind(var = names(summary(memPA.s1)$coefficients[,1]), value = as.vector(summary(memPA.s1)$coefficients[,1])))
+  # keep track of strata actually sampled in each dt sample and their order
+  n.sample <- as.data.table(table(sampleX$strataPSP))
+  b <- c(rep("b0",dim(n.sample)[1]),"b1","b2",rep("b1",dim(n.sample)[1]-1))
+  stratum <-c(n.sample$V1,n.sample$V1[1],"ALL",n.sample$V1[2:length(n.sample$V1)])
+  n.stratum <- c(n.sample$N,n.sample$N[1],sum(n.sample$N),n.sample$N[2:length(n.sample$N)])
+  paramsAll <- cbind(stratum,n.stratum,b,paramsPA)
+  # Initial df done
+  
+  # Remaining 99 samples
+  #---------------------------
+  nsamples <- 100
+  startTime <- Sys.time()
+  for(i in 1:(nsamples-1)) {
+    pix.s <- sample(pix$RasterID,10000,replace=FALSE)#,prob=pix$probPSP
+    sampled.pix <- dt2[RasterID %in% pix.s]
+    count.s <- as.data.table(table(sampled.pix$strataPSP))
+    b <- c(rep("b0",dim(count.s)[1]),"b1","b2",rep("b1",dim(count.s)[1]-1))
+    stratum <-c(count.s$V1,count.s$V1[1],"ALL",count.s$V1[2:length(count.s$V1)])
+    n.stratum <- c(count.s$N,count.s$N[1],sum(count.s$N),count.s$N[2:length(count.s$N)])
+    memPA <- lmer(formula= l.dbiom~strataPSP+logAge*strataPSP+age+(1|RasterID),data=sampled.pix)
+    nextparam <- as.data.frame(cbind(var = names(summary(memPA)$coefficients[,1]), value = as.vector(summary(memPA)$coefficients[,1])))
+    nextAll <- cbind(stratum,n.stratum,b,nextparam)
+    paramsAll <- rbind(paramsAll,nextAll)
+  }
+  endTime <- Sys.time()
+  fit.time <- endTime-startTime #Time difference of 14.43755 mins
+  # Completed sampling------------
+  
+  # Notes: 
+  # - there are 1688 lines in paramsPA after this loop
+  length(unique(paramsAll$var))
+  # - there are 19 unique parameter names 
+  # Check class of paramsAll
+  class(paramsAll)
+  paramsAll <- as.data.table(paramsAll)
+  # "value" was a factor, so make it numeric
+  paramsAll[,value :=as.numeric(as.character(value))]
+  setkey(paramsAll,b,stratum)
+  
+  write.table(paramsAll,file=paste("H:/saskatchewan/Celine/RsParameters/DeltaBiomRsParams_s",j,".txt",sep=""),sep=",",row.names=FALSE)
+}
+# the above file was copied into "CleanedUpForUsing" folder on M:/
+# Parameter estimation completed--------------------------------------------------------------------
 
 
 

@@ -4,7 +4,7 @@
 # 1) start with plot level biom/ha
 # 2) attach the "strata" info (casfri soil_moist/prodClass, and dom species)
 # 3) calculate yearly per ha increments 
-# 4) evalute grafically 
+# 4) evalute graphically 
 # 5) Save file
 # 6) need to go another way? per tree then per plot like volume?
 #

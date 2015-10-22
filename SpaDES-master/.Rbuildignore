@@ -1,0 +1,9 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+.*\.tar\.gz$
+.*\.zip$
+cache/*
+figure/*
+old/*
+SAMPLE/*
+development/*

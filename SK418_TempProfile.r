@@ -42,12 +42,12 @@ meas_sps <- group_by(skTree_byAge,SPECIES) %>%
   summarize(n())
 # better plot with a table
 g <- ggplot(data=skTree_byAge) + geom_bar(aes(age, fill=SPECIES),colour="black") +
-  xlab("Age") + ylab("Number of trees measured") +
-  ggtitle("Measured Trees by Age and Species - SK 418") + 
-  theme(plot.title = element_text(lineheight=1.2, face="bold"))
+  xlab("Plot age") + ylab("Number tree-level measurements") 
+  #ggtitle("Measured Trees by Age and Species - SK 418") + 
+  #theme(plot.title = element_text(lineheight=1.2, face="bold"))
   g+annotation_custom(tableGrob(meas_sps),xmin=175, xmax=225,ymin=7500,ymax=14000) 
 #ggsave("SK418_NoTreesAgeSps.pdf")
-
+#ggsave("C:/Celine/CelineSync/RES_Work/Work/JoanneWhite/SK_work/data/CleanedUpForUsing/SK418_TreeMeasAgeSps.pdf")
 
 # graph of the time horizon per plot
 # NOTE that this will give me plot-level temporal profile, not tree level...

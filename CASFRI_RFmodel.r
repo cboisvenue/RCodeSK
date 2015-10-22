@@ -35,7 +35,7 @@ pspkeep2 <- left_join(pspkeep1,rstimeinv)
 pspkeep3 <- inner_join(pspbiom,rsdata)
 keep1 <- inner_join(pspkeep3,plotinfo)
 
-# pspdata <- read.table(paste(indir,"RF_dataframePSPInfo.txt",sep=""), header=TRUE,sep=",")
+ pspdata <- read.table(paste(indir,"RF_dataframePSPInfo.txt",sep=""), header=TRUE,sep=",")
 # pspreplace <- select(pspdata,PLOT_ID,domsps,BF,BP,BS,JP,TA,TL,WB,WS,realage)
 # pspkeep <- select(pspdata,PLOT_ID,YEAR,biom.ha,b1,b2,b3,b4,b5,b6,CDED,SLOPE_DEG,TSRI,TWI)
 
@@ -74,7 +74,7 @@ casfri.for.rf.noNA <- filter(casfri.for.rf,!is.na(b1))
 rf.casfri3 <- rfsrc(biom.ha~.,data=casfri.for.rf.noNA[,-1],ntree=2000,importance="permute",mtry=6) 
 
 rf.mix <- rfsrc(biom.ha~.,data=for.rf[,-1],ntree=2000,importance="permute",mtry=6,na.action="na.impute") 
-write.table(for.rf[,-1],)
+#write.table(for.rf[,-1],)
 
 # Evaluating this model below
 # Plot the OOB errors against the growth of the randforest.--------------
