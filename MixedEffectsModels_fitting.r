@@ -81,7 +81,11 @@ AIC(mem2) #1810.46
 
 # add the random effects on one slope
 mem3 <- lmer(formula= ly~stratum+l.age+age1+(1+l.age|PLOT_ID),data=data1,REML=FALSE)
-# non-identifiable
+# non-identifiable - bellow is the proper syntax
+mem3.1 <- lmer(formula= ly~stratum+l.age+age1++(1|PLOT_ID)+(0+l.age|PLOT_ID),data=data1)
+AIC(mem3.1)
+#[1] 1862.192
+# but no better
 
 # keep random effects on the intercept only and add the interaction for 
 # a slope at each stratum
@@ -98,6 +102,18 @@ anova(mem2,mem4)
 #   ---
 #   Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
+mem4.1 <- lmer(formula= ly~stratum+l.age*stratum+age1+(1|PLOT_ID)+(0+l.age|PLOT_ID),data=data1,REML=FALSE)
+anova(mem4,mem4.1)
+# Data: data1
+# Models:
+#   mem4: ly ~ stratum + l.age * stratum + age1 + (1 | PLOT_ID)
+# mem4.1: ly ~ stratum + l.age * stratum + age1 + (1 | PLOT_ID) + (0 + 
+#                                                                    mem4.1:     l.age | PLOT_ID)
+# Df    AIC  BIC  logLik deviance  Chisq Chi Df Pr(>Chisq)
+# mem4   23 1804.8 1925 -879.39   1758.8                         
+# mem4.1 24 1805.5 1931 -878.77   1757.5 1.2297      1     0.2675
+## Not better
+
 
 # # checking with Byron to see if the l.age value can be multiplied by 1000 to make the raster 
 # # creation process a bit easier---------------------------------------------------------
@@ -106,7 +122,7 @@ anova(mem2,mem4)
 # AIC(mem4)#[1] 1804.776
 # the answer: better not----------------------------------------------------------------
 
-# add random effects on both slopes
+# add strata on both slopes
 mem5 <- lmer(formula= ly~stratum+l.age*stratum+age1*stratum+(1|PLOT_ID),data=data1,REML=FALSE)
 AIC(mem5)#[1]  1813.392
 # got worse!!
@@ -230,13 +246,14 @@ NoWSMhat2 <- exp(NoWSMlhat2)
 NoWSMpred2 <- cbind(topredMM,NoWSMhat2)
 NoWSMbiom2 <- ggplot(data=NoWSMpred2,aes(x=age1,y=NoWSMhat,group=stratum,colour=stratum)) + geom_line(size=1.5)
 NoWSMbiom2 + ggtitle("Predicting delta biomass t/ha by Strata removed SWM") +  scale_fill_brewer(palette="Spectral")
-# does not seem to change the curves, does improce the AIC though...
+# does not seem to change the curves, does improve the AIC though...
 # going with the "no SWM" version
 ggsave("FINALBiomassYieldCurves_oneStrataforSpruce.jpeg")
 
 #Final model:# One strata for white spruce (removed the WSM)
-# Mixed effects model with varying intercept and slope for l.age (all fixed),
-# but one param for age - random effects on the plots
+# Mixed effects model with random effect on intercept for plots, and 
+# strata values for intercept and slope for l.age (all fixed),
+# but one fixed param for age 
 ########################################################################
 Finalyhat <- fitted(mem7)
 plot(data4$biom.ha.inc,Finalyhat)

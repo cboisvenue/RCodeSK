@@ -14,7 +14,7 @@
 #
 # - I sub-sample the large data.table, 100 times,
 # - fit the same form as the PSP-based model for each one of the samples
-# - Create a file for that set of samples and save it
+# - Create a file for that set of samples and saved it
 # - plot the parameter values 
 #
 # - repeat all the sampling to see if results are consistent
