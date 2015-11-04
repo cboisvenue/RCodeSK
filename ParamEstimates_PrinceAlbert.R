@@ -96,6 +96,8 @@ startTime <- Sys.time()
 memPA.s1 <- lmer(formula= l.dbiom~strataPSP+logAge*strataPSP+age+(1|RasterID),data=sample1)
 endTime <- Sys.time()
 fit.time <- endTime-startTime #Time difference of 7.820782 secs
+save(memPA.s1,file="H:/saskatchewan/Celine/RsParameters/MEM_RS_OneSample.RData")
+# above file copied to M:
 
 # Note: with each sample, the parameters and strata are not in the same order
 # 1st solution: 
@@ -113,7 +115,7 @@ stratum <-c(n.sample$V1,n.sample$V1[1],"ALL",n.sample$V1[2:length(n.sample$V1)])
 n.stratum <- c(n.sample$N,n.sample$N[1],sum(n.sample$N),n.sample$N[2:length(n.sample$N)])
 paramsAll <- cbind(stratum,n.stratum,b,paramsPA)
 # Initial df done
-
+#keep1 <- paramsAll
 # Remaining 99 samples
 #---------------------------
 nsamples <- 100

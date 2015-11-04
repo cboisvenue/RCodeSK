@@ -48,6 +48,7 @@ g <- ggplot(data=skTree_byAge) + geom_bar(aes(age, fill=SPECIES),colour="black")
   g+annotation_custom(tableGrob(meas_sps),xmin=175, xmax=225,ymin=7500,ymax=14000) 
 #ggsave("SK418_NoTreesAgeSps.pdf")
 #ggsave("C:/Celine/CelineSync/RES_Work/Work/JoanneWhite/SK_work/data/CleanedUpForUsing/SK418_TreeMeasAgeSps.pdf")
+  ggsave("C:/Celine/CelineSync/RES_Work/Work/JoanneWhite/SK_work/WritingBin/figures/SK418_TreeMeasAgeSps.jpeg")
 
 # graph of the time horizon per plot
 # NOTE that this will give me plot-level temporal profile, not tree level...
