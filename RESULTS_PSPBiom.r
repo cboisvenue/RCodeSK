@@ -48,3 +48,13 @@ ggsave("C:/Celine/CelineSync/RES_Work/Work/JoanneWhite/SK_work/WritingBin/figure
 # hist
 hist(mean.year$mean/1000)
 ggplot(mean.year,aes(mean/1000)) + geom_histogram()
+
+# how many plots between 1984 and 2012?
+psp.rsRange <- mean.year[YEAR>1983 & YEAR<2013]
+noRange <- psp.rsRange[,sum(no.plot)]
+#...not, this is not what I want...the above gives me the plots measured per year...
+# I want to total no of plots
+rsRange.psp <- by.year[YEAR>1983 & YEAR<2013]
+rsRange.no <- length(unique(rsRange.psp$PLOT_ID))
+# 597
+# Note that the above are for all the PSP...not the perfectly geolocated ones...
