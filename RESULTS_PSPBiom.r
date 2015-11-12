@@ -33,6 +33,7 @@ plot.biom.ha <- merge(plot.biom,plotSize)
 plot.biom.ha[,kg.ha := (tot.biom/PLOT_SIZE)]
 
 psp <- merge(plot.biom.ha,strata)
+write.table(psp,file="G:/RES_Work/Work/JoanneWhite/SK_work/WritingBin/figures/PSPTableForFigure2.txt",sep=",",row.names = FALSE)
 
 # just by year
 by.year <- psp[,.(allSps.kg.ha=sum(kg.ha)),by=.(PLOT_ID,YEAR)]

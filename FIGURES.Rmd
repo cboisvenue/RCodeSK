@@ -1,0 +1,274 @@
+---
+output: word_document
+---
+# FIGURES
+
+\newpage
+
+## Figure 1. Our study areas: the managed forests of Saskatchewan and the Prince Albert Forest Management Area.
+![](figures/Figure1_try1.JPG)
+
+
+\newpage
+
+## Figure 2. Analyses inputs and flow.
+![](figures/CB_figure2_v2.jpeg)
+
+\newpage
+
+## Figure 3. Tree-level measurements over plot age, by species for plots used for biomass prediction.
+![](figures/SK418_TreeMeasAgeSps.JPG)
+
+
+[//]: (there is a jpeg of this file...but I am trying the embedded code avenue SK418_TreeMeasAgeSps.jpeg)
+
+[//]: (I can't get this code to work, the table is funky...)
+```{r echo=FALSE, eval=FALSE}
+  require(plyr)
+  require(ggplot2)
+  require(dplyr)
+  require(reshape2)
+  library(gridExtra)  
+
+  sk.tree <- read.table("C:/Celine/CelineSync/RES_Work/Work/JoanneWhite/SK_work/data/SK_418PlotsCleaned1.txt",sep=",")
+skTree_byAge <- select(sk.tree,PLOT_ID,TREE_NO,SPECIES,agecombo) %>%
+  mutate(age=round(agecombo)) %>%
+  select(PLOT_ID,TREE_NO,SPECIES,age)
+meas_sps <- group_by(skTree_byAge,SPECIES) %>%
+  summarize(n())
+g <- ggplot(data=skTree_byAge) + geom_bar(aes(age, fill=SPECIES),colour="black") +
+  xlab("Plot age") + ylab("Number tree-level measurements") 
+  g+annotation_custom(tableGrob(meas_sps,cex=0.5),xmin=200, xmax=250,ymin=10000,ymax=15000) )
+```
+
+\newpage
+
+## Figure 4. Number of plots measured in each measurement year.
+```{r echo=FALSE, message=FALSE}
+library(data.table)
+require(plyr)
+library(dplyr)
+library(ggplot2)
+
+indir = "M:/Spatially_explicit/01_Projects/07_SK_30m/Working/CBoisvenue/CleanedUpForUsing/"
+pspBiomInc <- read.table(paste(indir,"t_haBiom_yr.txt",sep=""),header=TRUE,sep=",")
+tree.biom <- read.table(paste(indir,"SK_2000TreeBiomass.csv",sep=""),sep=",",header=TRUE)
+mem.fit <- read.table(paste(indir,"FittingData_BiomassPSPModel.txt",sep=""),sep=",",header=TRUE)
+strata <- as.data.table(unique(cbind(PLOT_ID=mem.fit$PLOT_ID,strata=mem.fit$stratum)))
+
+# the biomass here in in kg (checked in pub)
+tree.biom <- as.data.table(tree.biom)
+# sum per plot, yr, sps
+plot.biom <- tree.biom[,.(tot.biom = sum(biomass),dom = first(dom),age=round(mean(age))),by=.(PLOT_ID,YEAR,SPECIES)]
+# get plot sizes
+plotInfo <- read.table("C:/Celine/CelineSync/RES_Work/Work/JoanneWhite/SK_work/GrowthRaster/BiomassEstimation/measurement_header.csv",sep=",", header=TRUE)
+plotInfo <- as.data.table(plotInfo)
+plotSize <- plotInfo[,.(PLOT_ID,PLOT_SIZE)]
+plotSize <- unique(plotSize)
+# merge
+setkey(plot.biom,PLOT_ID)
+setkey(plotSize,PLOT_ID)
+setkey(strata,PLOT_ID)
+plot.biom.ha <- merge(plot.biom,plotSize)
+plot.biom.ha <- plot.biom.ha[,kg.ha := (tot.biom/PLOT_SIZE)]
+psp <- merge(plot.biom.ha,strata)
+# just by year
+by.year <- psp[,.(allSps.kg.ha=sum(kg.ha)),by=.(PLOT_ID,YEAR)]
+mean.year <- by.year[,.(mean=mean(allSps.kg.ha),sd=sd(allSps.kg.ha),no.plot=.N),by=YEAR]
+setkey(mean.year,YEAR)
+# plot
+pb <- ggplot(mean.year,aes(YEAR,mean/1000))
+pb + geom_point(aes(size=no.plot),colour="red") + ylab("Mg/ha") + 
+  geom_errorbar(aes(ymin=(mean/1000)-1.96*(sd/1000),ymax=(mean/1000)+1.96*(sd/1000)))
+```
+
+\newpage
+
+## Figure 5. Average yearly biomass across all pixels of the combined-data estimates for each year from 1984-2012.
+```{r echo=FALSE, message=FALSE}
+avg.biom3 <- read.table(file="M:/Spatially_explicit/01_Projects/07_SK_30m/Working/CBoisvenue/CleanedUpForUsing/RasterAvg_SD.txt",sep=",",header=TRUE)
+library(ggplot2)
+pixel.biom <- ggplot(avg.biom3, aes(year,avg.biom1))
+pixel.biom + geom_point(colour="red")+ ylab("Mg/ha") + 
+  geom_errorbar(aes(ymin=avg.biom1-1.96*sd.biom1,ymax=avg.biom1+1.96*sd.biom1))
+```
+
+\newpage
+
+## Figure 6. Model residuals for mixed effect model fit to field plot data.
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(lme4)
+
+# load the model, it is names mem7
+load(file = "M:/Spatially_explicit/01_Projects/07_SK_30m/Working/growth/MEM_t_haPSP/MEM_t_ha.Rdata")
+
+library (ggplot2)
+error1 <- as.data.frame(cbind(c(1:1353),residuals(mem7)))
+names(error1) = c("Index","Error")
+plot.er1 <- ggplot(data=error1, aes(Index,Error)) + geom_point(size=2) +geom_hline(y=0,size=1) 
+#+theme(text = element_text(size=20))
+
+error2 <- as.data.frame(ranef(mem7)$PLOT_ID)
+names(error2) <- "Intercept"
+plot.er2 <- ggplot(data=error2,aes(sample=Intercept)) +stat_qq(shape=1) 
+#+theme(text = element_text(size=20))
+#,xlab="qnorm",ylab="(intercept)",cex.lab=1.5, DID NOT WORK TO GET AXIS LABELS BIGGER
+
+# both plots on one page
+library(grid)
+library(gridExtra)
+library(cowplot)
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+  
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+  
+  numPlots = length(plots)
+  
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                     ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+  
+  if (numPlots==1) {
+    print(plots[[1]])
+    
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+    
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+
+both.plots <- multiplot(plot.er1,plot.er2)
+
+```
+
+\newpage
+
+## Figure 7. Model residuals for mixed effect model fit to the combined field and remote sensing data.
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+load("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/Cboisvenue/CleanedUpForUsing/MEM_RS_OneSample.RData")
+library (ggplot2)
+error1 <- as.data.frame(cbind(c(1:280000),residuals(memPA.s1)))
+names(error1) = c("Index","Error")
+plot.er1 <- ggplot(data=error1, aes(Index,Error)) + geom_point(size=2) +geom_hline(y=0,size=1) 
+#+ theme(text = element_text(size=20))
+
+
+error2 <- as.data.frame(ranef(memPA.s1)$RasterID)
+names(error2) <- "Intercept"
+plot.er2 <- ggplot(data=error2,aes(sample=Intercept)) +stat_qq(shape=1) 
+#+theme(text = element_text(size=20))
+
+
+# Multiple plot function
+#
+# ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
+# - cols:   Number of columns in layout
+# - layout: A matrix specifying the layout. If present, 'cols' is ignored.
+#
+# If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
+# then plot 1 will go in the upper left, 2 will go in the upper right, and
+# 3 will go all the way across the bottom.
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+  
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+  
+  numPlots = length(plots)
+  
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                     ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+  
+  if (numPlots==1) {
+    print(plots[[1]])
+    
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+    
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+
+
+multiplot(plot.er1,plot.er2)
+```
+
+\newpage
+
+## Figure 8. Confidence interval around parameter estimates of a TYPE II combined exponential and power function with random effect on plot, fit for predicting change in biomass in the field plots as a function of age.
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+param.CI <- read.table(file="M:/Spatially_explicit/01_Projects/07_SK_30m/Working/Cboisvenue/CleanedUpForUsing/BiomModelParamsCI.txt",sep=",",header=TRUE)
+library(ggplot2)
+ci.plot <- ggplot(data=param.CI, aes(y=value,x=stratum, group=b, colour=b)) + 
+  geom_errorbar(aes(ymin=lower.b,ymax=upper.b), width=.2) + geom_point() + theme_gray()
+ci.plot
+```
+
+\newpage
+
+## Figure 9. Parameter comparison between parameters fit with the same methods on the same model form but with two different data sets, one with only field plots information and with with compbined field and remote sensing data. The first panel is for the intercept, and the second for the first slope.
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(data.table)
+library(ggplot2)
+
+# Read in both parameter estimates
+#-----------------------------------------
+data.in = "M:/Spatially_explicit/01_Projects/07_SK_30m/Working/CBoisvenue/CleanedUpForUsing/"
+
+psp <- fread(paste(data.in,"BiomModelParamsCI.txt",sep=""),sep=",",header=TRUE)
+setkey(psp,stratum,b)
+rs <-  fread(paste(data.in,"DeltaBiomRsParams.txt",sep=""),sep=",",header=TRUE)
+setkey(rs,stratum,b)
+# End of reading in data -------------------------
+
+# Compare one parameter type at a time
+#-----------------------------------------------------------------
+
+# graphically compare the intercepts only
+b0psp <- psp[.(stratum,"b0")][stratum!="ALL"]
+b0rs <- rs[b=="b0"]
+
+
+b0.plot <- ggplot(data=b0psp, aes(y=value,x=stratum)) + 
+  geom_errorbar(aes(ymin=lower.b,ymax=upper.b), width=.2,colour="purple") + geom_point(colour="purple") +
+  geom_boxplot(data=b0rs,aes(x=stratum,y=value,alpha=0.2)) +
+  theme(legend.position="none") +
+  ggtitle("Intercept values comparison, RS and PSP") +
+  theme(plot.title=element_text(face="bold",size=20))
+
+```
+
