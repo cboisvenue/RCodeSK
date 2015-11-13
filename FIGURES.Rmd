@@ -240,7 +240,7 @@ ci.plot
 
 \newpage
 
-## Figure 9. Parameter comparison between parameters fit with the same methods on the same model form but with two different data sets, one with only field plots information and with with compbined field and remote sensing data. The first panel is for the intercept, and the second for the first slope.
+## Figure 9. Parameter comparison between parameters fit with the same methods on the same model form but with two different data sets, one with only field plots information and one with combined field and remote sensing data. The first panel is for the intercept, and the second for the slopes.
 ```{r echo=FALSE,message=FALSE,warning=FALSE}
 library(data.table)
 library(ggplot2)
@@ -253,6 +253,12 @@ psp <- fread(paste(data.in,"BiomModelParamsCI.txt",sep=""),sep=",",header=TRUE)
 setkey(psp,stratum,b)
 rs <-  fread(paste(data.in,"DeltaBiomRsParams.txt",sep=""),sep=",",header=TRUE)
 setkey(rs,stratum,b)
+b0.modes <- read.table(file=paste(data.in,"b0RSmodes.txt",sep=""),sep=",",header=TRUE)
+b1.modes <- read.table(file=paste(data.in,"b1RSmodes.txt",sep=""),sep=",",header=TRUE)
+b2.modes <- read.table(file=paste(data.in,"b2RSmodes.txt",sep=""),sep=",",header=TRUE)
+stratum <- "ALL"
+b2.mode <- as.data.frame(cbind(stratum,b2.modes))
+
 # End of reading in data -------------------------
 
 # Compare one parameter type at a time
@@ -267,8 +273,22 @@ b0.plot <- ggplot(data=b0psp, aes(y=value,x=stratum)) +
   geom_errorbar(aes(ymin=lower.b,ymax=upper.b), width=.2,colour="purple") + geom_point(colour="purple") +
   geom_boxplot(data=b0rs,aes(x=stratum,y=value,alpha=0.2)) +
   theme(legend.position="none") +
-  ggtitle("Intercept values comparison, RS and PSP") +
-  theme(plot.title=element_text(face="bold",size=20))
+  #ggtitle("Intercept values comparison, RS and PSP") +
+  theme(plot.title=element_text(face="bold",size=20)) + theme_gray() 
+  
+b0.plot + geom_point(data=b0.modes,aes(x=stratum,y=mode,colour="red", size=2)) +theme(legend.position="none")
 
+# second graph
+b1psp <- psp[b=="b1" | b=="b2"]
+b1rs <- rs[b=="b1" | b=="b2"]
+
+b1.plot <- ggplot(data=b1psp, aes(y=value,x=stratum)) + 
+  geom_errorbar(aes(ymin=lower.b,ymax=upper.b), width=.2,colour="purple") + geom_point(colour="purple") +
+  geom_boxplot(data=b1rs,aes(x=stratum,y=value,alpha=0.2)) +
+# theme(legend.position="none") +
+#  ggtitle("Slope for logAge comparison, RS and PSP") +
+  theme(plot.title=element_text(face="bold",size=20)) + theme_gray()
+b1.plot2 <- b1.plot + geom_point(data=b1.modes,aes(x=stratum,y=mode,colour="red", size=2))+ theme(legend.position="none")
+b1.plot2 + geom_point(data=b2.mode,aes(x=stratum,y=mode,colour="red", size=2))+ theme(legend.position="none")
 ```
 
