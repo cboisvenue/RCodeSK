@@ -1,5 +1,12 @@
 #Summarize CBMPlotter csv output for cASFRI data
 
+#Works well for stocks. For fluxes where year 0 has 0 values, in .csv input you need 
+#to add same number of parameter groups as year 1 in column 1 with column 2 having 
+#only zeros
+
+#If there are a different number of parameter groups between years, this could
+#create a problem....
+
 #Author: Byron Smiley
 
 #Date: Nov 17 2015
@@ -8,22 +15,24 @@
 #Packages:
 library(dplyr)
 
-library(ggplot2)
-
-install.packages("ggplot2")
 #-------------------------------------------------------
-years <- 1984:2012
+## Change Result name - this is dependent on the folder input and output name
 result="NEP"
+#Identify years of analysis for future column
+years <- 1984:2012
+#Identify input/output directories and set wd
 inputdir <- "G:/PFC_UVicFall2015/Project/Working/Sask_runs/casfri_landsat/maps/CASFRI_output"
 resultsdir <- paste(inputdir,"/",result,"/", sep="")
-
 setwd(resultsdir)
 
+#list all csv files in folder (each file is 1 year of data)
 listfiles <- list.files(path=resultsdir, 
                         pattern='\\.csv$', full.names=TRUE)
 
+#bind all years of data (data column and parameter group ID column)
 cleaned <- bind_cols(lapply(listfiles, read.csv, header=FALSE)) 
   
+#Name columns to correspond wit the data year
 names(cleaned) <- c("pGroups", "1984","pGroups", "1985","pGroups", "1986",
                     "pGroups", "1987","pGroups", "1988","pGroups", "1989",
                     "pGroups", "1990","pGroups", "1991","pGroups", "1992",
@@ -35,11 +44,15 @@ names(cleaned) <- c("pGroups", "1984","pGroups", "1985","pGroups", "1986",
                     "pGroups", "2008","pGroups", "2009","pGroups", "2010",
                     "pGroups", "2011","pGroups", "2012")
 
+#Remove extra parameter group ID columns
 cleaned2 <- subset(cleaned, select= c(1,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,
                                       32,34,36,38,40,42,44,46,48,50,52,54,56,58))
-  
+
+#Sum each year column and convert to a dataframe  
 cleaned3 <- colSums(cleaned2 [,-1])
 cleaned3 <- data_frame(years,cleaned3)
+#Rename columns
 names(cleaned3) <- c("Year", result)
 plot(cleaned3)
+#Write csv table to file (same folder as input data)
 write.table(cleaned3, file=paste(result, ".csv", sep=""), sep=",", row.names=FALSE)
