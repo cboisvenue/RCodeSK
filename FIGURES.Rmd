@@ -6,13 +6,13 @@ output: word_document
 \newpage
 
 ## Figure 1. Our study areas: the managed forests of Saskatchewan and the Prince Albert Forest Management Area.
-![](figures/Figure1_try1.JPG)
+![](figures/fig1.jgp)
 
 
 \newpage
 
 ## Figure 2. Analyses inputs and flow.
-![](figures/CB_figure2_v2.jpeg)
+![](figures/fig2.jpeg)
 
 \newpage
 
