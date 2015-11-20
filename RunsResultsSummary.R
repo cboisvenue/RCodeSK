@@ -32,13 +32,17 @@ range(nep)
 
 # THIS FILE BELLOW IS NOT CORRECT WAIT FOR BYRON TO UPDATE FILE
 areaDist <- fread(paste(indir,"DistArea.csv",sep=""),sep=",",header=TRUE)
+range(areaDist$DistArea)
 
 # graph of these through time
 g.stocks <- ggplot(data=stocks,aes(x=Year,y=gC/1000000,group=1)) + geom_line(size=1)
 g.stocks +ggtitle("Total Ecosystem Carbon")
-g.nbp <- ggplot(data=nbp,aes(x=Year,y=NBP,group=1)) + geom_line()
-g.nbp +ggtitle("Total Ecosystem Yearly Flux")
-g.abgbiom <- ggplot(data=agbiom,aes(x=Year,y=g,group=1)) + geom_line(colour="green",size=1)
+g.nbp <- ggplot(data=nbp,aes(x=Year,y=NBP/1000000,group=1)) + geom_line(size=1,colour="red") + geom_hline()
+g.nbp +ggtitle("Total Ecosystem Yearly Flux") +
+    geom_line(data=nep,aes(x=Year,y=NEP/1000000,group=1))
 
+g.abgbiom <- ggplot(data=agbiom,aes(x=Year,y=g/2000000,group=1)) + geom_line(colour="green",size=1)
 
+# NOT WORKIGN B/C of scale issues
+g.dist <- ggplot(data=areaDist,aes(x=Year,y=areaDist,group=1)) + geom_bar()
 
