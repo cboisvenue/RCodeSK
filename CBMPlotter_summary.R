@@ -17,7 +17,7 @@ library(dplyr)
 
 #-------------------------------------------------------
 ## Change Result name - this is dependent on the folder input and output name
-result="NEP"
+result="DistAreabyArea"
 #Identify years of analysis for future column
 years <- 1984:2012
 #Identify input/output directories and set wd
@@ -53,6 +53,6 @@ cleaned3 <- colSums(cleaned2 [,-1])
 cleaned3 <- data_frame(years,cleaned3)
 #Rename columns
 names(cleaned3) <- c("Year", result)
-plot(cleaned3)
+plot(cleaned3, type="l")
 #Write csv table to file (same folder as input data)
 write.table(cleaned3, file=paste(result, ".csv", sep=""), sep=",", row.names=FALSE)
