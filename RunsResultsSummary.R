@@ -138,7 +138,9 @@ g3 <- ggplot(data=growth,aes(x=plot.age,y=memT.notagyhat,group=strata,colour=str
   geom_line(size=1)
  g3 + theme(legend.position=c(0.1,0.65))
 +  scale_fill_brewer(palette="Spectral")
-
+# end of growth curves
+ 
+ 
 
 
 #HERE
