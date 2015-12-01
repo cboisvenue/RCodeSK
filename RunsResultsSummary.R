@@ -32,30 +32,17 @@ age10[group=="<10",group := "0"]
 age10[group==">180",group := "180"]
 #age10[,group :=as.numeric(group)]
 age1stLast <- age10[year==1984|year==2012]
-age1984 <- age10[year==1984]
-age1984[,group := (as.numeric(group)+5)]
+# age1984 <- age10[year==1984]
+# age1984[,group := (as.numeric(group)+5)]
 age1stLast[,group := (as.numeric(group)+5)]
+age1stLast[,year := as.character(year)]
+# colour blind palette
+#cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
-ggplot(age1stLast,aes(x=group,y=ha/1000000,group=year,fill=year,colour=year)) + 
-  geom_bar(stat="identity",position="dodge",show_guide=FALSE) +
-  xlab("10-year Age Classes") + ylab("Mha") 
-
-# still need to figure out how to get the proper legend
-+ scale_fill_identity(name = 'Year', guide = 'legend',labels = as.character(c('1984','2012')))
-
-
-theme(legend.position=c(0.85,0.8))
-+
-  
-+
-  scale_color_discrete(breaks=as.factor(C("1984","2012")))
-
-+ scale_fill_continuous(name="Year",breaks=c("1984","2012"))
-
-
-
-
-
+g1 <- ggplot(age1stLast,aes(x=group,y=ha/1000000,group=year,fill=year)) + 
+  geom_bar(stat="identity",position="dodge") +
+  xlab("10-year Age Classes") + ylab("Mha") +
+  theme(legend.position=c(0.85,0.8)) + scale_fill_manual(values=c("#3399CC","#000066"))
 
 
 # disturbances per year  ----------------------------
@@ -70,14 +57,91 @@ dist.yr <- melt(distsums, id.vars = c("DistType","distnames"),
 year <- sort(rep(1984:2012,5))
 dist.yr <- cbind(year,dist.yr)
 # get rid of redondant cols and re-order 
-dist <- dist.yr[,c("DistType","yr.ch"):=NULL]
-setcolorder(dist,c("distnames","year","ha"))
+dist1 <- dist.yr[,c("DistType","yr.ch"):=NULL]
+setcolorder(dist1,c("distnames","year","ha"))
+
+dist <- dist1[distnames %in% c("fire","harvest","mortality 20%","deforestation")]
+
+g2 <- ggplot(data=dist,aes(x=year,y=ha/1000,group=distnames,fill=distnames)) + 
+  geom_bar(stat="identity") + ylab("1000ha")
+
+# growth curves-------------------------------------------
+
+# this is the model it is called memTnotag
+load("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/CBoisvenue/CleanedUpForUsing/GrowthCurvesMEModel_noTAG.RData")
+
+# error graph NOT SURE IF I NEED TO SHOW THESE--------------------------------------------
+error1 <- as.data.frame(cbind(c(1:length(residuals(memTnotag))),residuals(memTnotag)))
+names(error1) = c("Index","Error")
+plot.er1 <- ggplot(data=error1, aes(Index,Error)) + geom_point(size=2) +geom_hline(y=0,size=1) + theme(text = element_text(size=20))
+library(lme4)
+error2 <- as.data.frame(ranef(memTnotag)$PLOT_ID)
+names(error2) <- "Intercept"
+plot.er2 <- ggplot(data=error2,aes(sample=Intercept)) +stat_qq(shape=1) +theme(text = element_text(size=20))
+# Multiple plot functions
+#
+# ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
+# - cols:   Number of columns in layout
+# - layout: A matrix specifying the layout. If present, 'cols' is ignored.
+#
+# If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
+# then plot 1 will go in the upper left, 2 will go in the upper right, and
+# 3 will go all the way across the bottom.
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+  
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+  
+  numPlots = length(plots)
+  
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                     ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+  
+  if (numPlots==1) {
+    print(plots[[1]])
+    
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+    
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+
+
+multiplot(plot.er1,plot.er2)
+# END of error plots-------------------------------------------------
+
+# Growth curves-----------------------------------------------------------
+growth1 <- fread("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/CBoisvenue/CleanedUpForUsing/MEMPredictedGrowth_noTAG.txt",sep=",",header=TRUE)
+# changing the names of the strata
+library(plyr)
+strata <- revalue(growth1$stratum,c("BSG"="BSGood","BSM"="BSMedium","TAM"="TA","WSG"="WSGood","WSM"="WSMedium"))
+growth <- cbind(growth1[,stratum:= NULL],strata)
+g3 <- ggplot(data=growth,aes(x=plot.age,y=memT.notagyhat,group=strata,colour=strata)) + 
+  geom_line(size=1)
+ g3 + theme(legend.position=c(0.1,0.65))
++  scale_fill_brewer(palette="Spectral")
 
 
 
-
-
-
+#HERE
 # carbon values are in metric tonnes/megagrams of C 
 stocks <- fread(paste(indir,"totalE.csv",sep=""),sep=",",header=TRUE)
 setnames(stocks,names(stocks),c("Year","gC"))
