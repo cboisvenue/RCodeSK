@@ -207,8 +207,28 @@ agbiom <- cbind(year,agbiom)
 g.abgbiom <- ggplot(data=agbiom,aes(x=year,y=`Aboveground Biomass`)) + geom_line(colour="green",size=1)
 # End ABGbiomass -------------------------
 
+# emissions ------------------------------
 
+fire <- fread(paste(indir,"ToolboxResults/FireEmissionsBySource.csv",sep=""),sep=",",header=TRUE)
+harv <- fread(paste(indir,"ToolboxResults/HarvestEmissionsBySource.csv",sep=""),sep=",",header=TRUE)
+defor <-fread(paste(indir,"ToolboxResults/DeforestationEmissionsBySource.csv",sep=""),sep=",",header=TRUE)
 
+dist <- c(rep("fire",27),rep("harvest",27),rep("deforestation",27))
+dist.em <- cbind(rbind(fire,harv,defor),dist)
 
-
-
+# calculate total emissions from dist
+tot.em <- dist.em[,.(tot.CO2 = sum(`Total CO2`), tot.CO = sum(`Total CO`),tot.CH4 = sum(`Total CH4`)), by=`year`]
+tot<- tot.em[,.(tot = (tot.CO2+tot.CO+tot.CH4))]
+tot.em <- cbind(tot.em,tot)
+CO2 <- mean(tot.em[,(CO2 = (tot.CO2/tot)*100)]) # 90%
+CO <- mean(tot.em[,(CO = (tot.CO/tot)*100)]) # 9%
+CH4 <- mean(tot.em[,(CH4 = (tot.CH4/tot)*100)]) # 1%
+Gas <- c("CO2","CO","CH4")
+percent <- c(round(CO2),round(CO),round(CH4))
+gas.prop <- as.data.table(cbind(Gas,percent))
+  
+# tot.em1 <- melt(tot.em,id.vars = c("year"),
+#                 variable.name = "gas", value.name = "MgC")
+library(gridExtra)
+g.emissions.tot <- ggplot(data=tot.em,aes(x=year,y=tot)) +
+  geom_line(size=1.2) 
