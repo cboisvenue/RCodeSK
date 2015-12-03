@@ -21,7 +21,7 @@ list.files(indir)
 # Input description----------------------------------------------
 
 # age class dist in 1984 ---------------------------------------
-age10 <- fread(paste(indir,"age_binned_10.csv",sep=""),sep=",",header=TRUE)
+age10 <- fread(paste(indir,"CBMPlotterResults/age_binned_10.csv",sep=""),sep=",",header=TRUE)
 age10<- melt(age10, value.name = "ha")
 year <- sort(rep(1984:2012,20))
 age10 <- cbind(year,age10)
@@ -43,29 +43,46 @@ g1 <- ggplot(age1stLast,aes(x=group,y=ha/1000000,group=year,fill=year)) +
   geom_bar(stat="identity",position="dodge") +
   xlab("10-year Age Classes") + ylab("Mha") +
   theme(legend.position=c(0.85,0.8)) + scale_fill_manual(values=c("#3399CC","#000066"))
-
+# age class done-------------------------------------------------
 
 # disturbances per year  ----------------------------
-distsums <- fread(paste(indir,"DistSums.csv",sep=""),sep=",",header=TRUE)
-# this in wide form, I need short form
-# I want the names as opposed to the numbers - this list is in order with
-# increasing integers 0,1,3,168,234
-distnames <- c("not distrubed","fire","harvest","mortality 20%","deforestation")
-distsums <- cbind(distsums,distnames)
-dist.yr <- melt(distsums, id.vars = c("DistType","distnames"),
-                variable.name = "yr.ch", value.name = "ha")
-year <- sort(rep(1984:2012,5))
+distsums <- fread(paste(indir,"ToolboxResults/AllDisturbance.csv",sep=""),sep=",",header=TRUE)
+names(distsums)
+setnames(distsums,names(distsums),c("timestep","fire","harvest","deforestation","mortality 20%"))
+dist.yr <- melt(distsums, id.vars = c("timestep"),
+                variable.name = "disturbance", value.name = "ha")
+
+year <- rep(1984:2012,4)
 dist.yr <- cbind(year,dist.yr)
-# get rid of redondant cols and re-order 
-dist1 <- dist.yr[,c("DistType","yr.ch"):=NULL]
-setcolorder(dist1,c("distnames","year","ha"))
+# get rid of 1984 and 2012 b/c of 0 hectares disturbed
+dist.yr <- dist.yr[ha>0]
 
-dist <- dist1[distnames %in% c("fire","harvest","mortality 20%","deforestation")]
+g2 <- ggplot(data=dist.yr,aes(x=year,y=ha/1000,group=disturbance,fill=disturbance)) + 
+  geom_bar(stat="identity") + ylab("1000ha") + theme(legend.position=c(0.1,0.65))
+ggsave(g2,file=paste(outfigs,"Figure5_haDistyr.jpeg",sep=""))
+# end dist per year---------------------------------
 
-g2 <- ggplot(data=dist,aes(x=year,y=ha/1000,group=distnames,fill=distnames)) + 
-  geom_bar(stat="identity") + ylab("1000ha")
+# dom species ha ---------------------------------------
+domspsha <- fread(paste(indir,"CASFRI_domSp.csv",sep=""),sep=",",header=TRUE)
+domspsha[,"value" := NULL]  # for some unknown reason this is not getting rid of the value column...
 
-# growth curves-------------------------------------------
+g4 <- ggplot(data=domspsha,aes(x=Name,y=hectares,fill=Name)) + geom_bar(stat="identity") +
+  theme(legend.position="none")
+# end of species---------------------------------------
+
+# Growth curves-----------------------------------------------------------
+growth1 <- fread("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/CBoisvenue/CleanedUpForUsing/MEMPredictedGrowth_noTAG.txt",sep=",",header=TRUE)
+# changing the names of the strata
+library(plyr)
+strata <- revalue(growth1$stratum,c("BSG"="BSGood","BSM"="BSMedium","TAM"="TA","WSG"="WSGood","WSM"="WSMedium"))
+growth <- cbind(growth1[,stratum:= NULL],strata)
+g3 <- ggplot(data=growth,aes(x=plot.age,y=memT.notagyhat,group=strata,colour=strata)) + 
+  geom_line(size=1)
+g3 + theme(legend.position=c(0.1,0.65))
+#+  scale_fill_brewer(palette="Spectral")
+# end of growth curves-----------------------------------------------------
+
+# growth model error-------------------------------------------
 
 # this is the model it is called memTnotag
 load("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/CBoisvenue/CleanedUpForUsing/GrowthCurvesMEModel_noTAG.RData")
@@ -124,53 +141,74 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
   }
 }
 
-
 multiplot(plot.er1,plot.er2)
 # END of error plots-------------------------------------------------
 
-# Growth curves-----------------------------------------------------------
-growth1 <- fread("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/CBoisvenue/CleanedUpForUsing/MEMPredictedGrowth_noTAG.txt",sep=",",header=TRUE)
-# changing the names of the strata
-library(plyr)
-strata <- revalue(growth1$stratum,c("BSG"="BSGood","BSM"="BSMedium","TAM"="TA","WSG"="WSGood","WSM"="WSMedium"))
-growth <- cbind(growth1[,stratum:= NULL],strata)
-g3 <- ggplot(data=growth,aes(x=plot.age,y=memT.notagyhat,group=strata,colour=strata)) + 
-  geom_line(size=1)
- g3 + theme(legend.position=c(0.1,0.65))
-+  scale_fill_brewer(palette="Spectral")
-# end of growth curves
- 
- 
+# carbon values are in metric tonnes/megagrams of C --------------------------------
+# stocks--------------
+stocks <- fread(paste(indir,"ToolboxResults/total_ecosystemCStocks_total.csv",sep=""),sep=",",header=TRUE)
+year <- 1984:2012
+stocks <- cbind(year,stocks)
+g.stocks <- ggplot(data=stocks,aes(x=year,y=`Total Ecosystem`,group=1)) + geom_line(size=1)
+# g.stocks +ggtitle("Total Ecosystem Carbon")
+stocks.84 <- stocks[year=="1984"]
+stocks.12 <- stocks[year=="2012"]
+# if the values are already in Mg...here it becomes 10^12 (teragrams)
+d.stocks <- (stocks.12$`Total Ecosystem` - stocks.84$`Total Ecosystem`)/1000000
+# for NIR comparison
+stocks.90 <- stocks[year=="1990"]
+stocks.12 <- stocks[year=="2012"]
+# if the values are already in Mg...here it becomes 10^12 (teragrams)
+d.stocks2 <- (stocks.12$`Total Ecosystem` - stocks.90$`Total Ecosystem`)/1000000
+# end of stocks--------
+
+# carbon density -----------------
+Cdensity <- fread(paste(indir,"ToolboxResults/totalEcosystemStocks_perHa.csv",sep=""),sep=",",header=TRUE)
+year <- 1984:2012
+Cdensity <- cbind(year,Cdensity)
+g.density <- ggplot(data=Cdensity,aes(x=year,y=`perHa Total Ecosystem`,group=1)) + geom_line(size=1)
+# g.stocks +ggtitle("Total Ecosystem Carbon")
+avgDensity <- Cdensity[,.(Avg = mean(`perHa Total Ecosystem`), sd=sd(`perHa Total Ecosystem`))]
+avgArea <- Cdensity[,.(Avg = mean(hectares), sd=sd(hectares))]
+# END carbon density -------------
+
+# Fluxes through time, totals in tonnes of C (megaGrams)
+# NBP/NEP----------------------------
+nppnep <- fread(paste(indir,"ToolboxResults/NEP&NPP_totals.csv",sep=""),sep=",",header=TRUE)
+nppnep[,c("V4","V5") := NULL]
+setnames(nppnep,names(nppnep),c("timestep","NPP","NEP"))
+year <- 1984:2012
+nppnep <- cbind(year,nppnep)
+nppnep <- nppnep[2:29,]
+
+nbp <-  fread(paste(indir,"ToolboxResults/NBP_total.csv",sep=""),sep=",",header=TRUE)
+setnames(nbp,names(nbp),c("timestep","NBP"))
+nbp <- nbp[timestep>0]
+year <- 1985:2012
+nbp <- cbind(year,nbp)
+setkey(nbp,year,timestep)
+setkey(nppnep,year,timestep)
+fluxes <- merge(nbp,nppnep)
+fluxes[,Rh := (NPP-NEP)]
+fluxes2 <- melt(fluxes,id.vars = c("year","timestep"),
+                variable.name = "flux", value.name = "MgC")
+
+g.fluxes <- ggplot(data=fluxes2,aes(x=year,y=MgC,group=flux,colour=flux)) + 
+  geom_line(size=1.2) + geom_hline() +theme(legend.position=c(0.85,0.65))
+ggsave(g.fluxes,file=paste(outfigs,"Figure8_fluxesTotal.jpeg",sep=""))
+# End fluxes-------------------------
 
 
-#HERE
-# carbon values are in metric tonnes/megagrams of C 
-stocks <- fread(paste(indir,"totalE.csv",sep=""),sep=",",header=TRUE)
-setnames(stocks,names(stocks),c("Year","gC"))
-agbiom <- fread(paste(indir,"agbio.csv",sep=""),sep=",",header=TRUE)
-setnames(agbiom,names(agbiom),c("Year","g"))
-
-nbp <- fread(paste(indir,"NBP.csv",sep=""),sep=",",header=TRUE)
-nep <- fread(paste(indir,"NEP.csv",sep=""),sep=",",header=TRUE)
-range(nbp)
-#[1] -6428598  1869711
-range(nep)
-#[1]       0 1925205
+# ABGbiomass -----------------------------
+agbiom <- fread(paste(indir,"ToolboxResults/agBiomass_totals.csv",sep=""),sep=",",header=TRUE)
+agbiom <- agbiom[,c("Foliage(SW) + Foliage(HW)","Other(SW) + Other(HW)","Merch(SW) + Merch(HW)") := NULL]
+year <- 1984:2012
+agbiom <- cbind(year,agbiom)
+g.abgbiom <- ggplot(data=agbiom,aes(x=year,y=`Aboveground Biomass`)) + geom_line(colour="green",size=1)
+# End ABGbiomass -------------------------
 
 
-# THIS FILE BELLOW IS NOT CORRECT WAIT FOR BYRON TO UPDATE FILE
-areaDist <- fread(paste(indir,"DistArea.csv",sep=""),sep=",",header=TRUE)
-range(areaDist$DistArea)
 
-# graph of these through time
-g.stocks <- ggplot(data=stocks,aes(x=Year,y=gC/1000000,group=1)) + geom_line(size=1)
-g.stocks +ggtitle("Total Ecosystem Carbon")
-g.nbp <- ggplot(data=nbp,aes(x=Year,y=NBP/1000000,group=1)) + geom_line(size=1,colour="red") + geom_hline()
-g.nbp +ggtitle("Total Ecosystem Yearly Flux") +
-    geom_line(data=nep,aes(x=Year,y=NEP/1000000,group=1))
 
-g.abgbiom <- ggplot(data=agbiom,aes(x=Year,y=g/2000000,group=1)) + geom_line(colour="green",size=1)
 
-# NOT WORKIGN B/C of scale issues
-g.dist <- ggplot(data=areaDist,aes(x=Year,y=areaDist,group=1)) + geom_bar()
 
