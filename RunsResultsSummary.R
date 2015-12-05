@@ -216,7 +216,8 @@ defor <-fread(paste(indir,"ToolboxResults/DeforestationEmissionsBySource.csv",se
 dist <- c(rep("fire",27),rep("harvest",27),rep("deforestation",27))
 dist.em <- cbind(rbind(fire,harv,defor),dist)
 
-# calculate total emissions from dist
+# calculate total emissions from dist by gas 
+# Checked: this matches the StinsonTable_v2.xls values lines 37+38
 tot.em <- dist.em[,.(tot.CO2 = sum(`Total CO2`), tot.CO = sum(`Total CO`),tot.CH4 = sum(`Total CH4`)), by=`year`]
 tot<- tot.em[,.(tot = (tot.CO2+tot.CO+tot.CH4))]
 tot.em <- cbind(tot.em,tot)
@@ -225,10 +226,18 @@ CO <- mean(tot.em[,(CO = (tot.CO/tot)*100)]) # 9%
 CH4 <- mean(tot.em[,(CH4 = (tot.CH4/tot)*100)]) # 1%
 Gas <- c("CO2","CO","CH4")
 percent <- c(round(CO2),round(CO),round(CH4))
-gas.prop <- as.data.table(cbind(Gas,percent))
+gas.prop <-cbind(Gas,percent)
   
 # tot.em1 <- melt(tot.em,id.vars = c("year"),
 #                 variable.name = "gas", value.name = "MgC")
 library(gridExtra)
+grid.table(gas.prop)
 g.emissions.tot <- ggplot(data=tot.em,aes(x=year,y=tot)) +
-  geom_line(size=1.2) 
+  geom_line(size=1.2) + 
+  annotation_custom(grob= tableGrob(gas.prop),xmin=2005,xmax=2005,ymin=4000000,ymax=6000000) 
+
+# totals by dist type
+dist.tot <- dist.em[,.(dist.tot=sum(`Total CO2`,`Total CO`,`Total CH4`)), by=.(year,dist)]
+g.emissions.tot +geom_line(data=dist.tot,aes(x=year,y=dist.tot,fill=dist,group=dist,colour=dist), 
+                           size=1.2, linetype=2) + theme(legend.position=c(0.9,0.62))
+ggsave(file=paste(outfigs,"Figure9_DistEmissions.jpeg",sep=""))  
