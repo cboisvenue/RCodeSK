@@ -6,7 +6,7 @@ output: word_document
 \newpage
 
 ## Figure 1. Our study areas: the managed forests of Saskatchewan and the Prince Albert Forest Management Area.
-![](figures/fig1.jgp)
+![](figures/fig1_v2.jpg)
 
 
 \newpage

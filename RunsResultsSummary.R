@@ -38,6 +38,7 @@ age1stLast[,group := (as.numeric(group)+5)]
 age1stLast[,year := as.character(year)]
 # colour blind palette
 #cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 g1 <- ggplot(age1stLast,aes(x=group,y=ha/1000000,group=year,fill=year)) + 
   geom_bar(stat="identity",position="dodge") +
@@ -79,6 +80,7 @@ growth <- cbind(growth1[,stratum:= NULL],strata)
 g3 <- ggplot(data=growth,aes(x=plot.age,y=memT.notagyhat,group=strata,colour=strata)) + 
   geom_line(size=1)
 g3 + theme(legend.position=c(0.1,0.65))
+
 #+  scale_fill_brewer(palette="Spectral")
 # end of growth curves-----------------------------------------------------
 
@@ -230,14 +232,94 @@ gas.prop <-cbind(Gas,percent)
   
 # tot.em1 <- melt(tot.em,id.vars = c("year"),
 #                 variable.name = "gas", value.name = "MgC")
-library(gridExtra)
-grid.table(gas.prop)
+#library(gridExtra)
+#grid.table(gas.prop)
 g.emissions.tot <- ggplot(data=tot.em,aes(x=year,y=tot)) +
-  geom_line(size=1.2) + 
-  annotation_custom(grob= tableGrob(gas.prop),xmin=2005,xmax=2005,ymin=4000000,ymax=6000000) 
+   geom_line(size=1.2)
+# g.emissions.tot + theme(legend.position=c(0.9,0.62))
+#+ 
+  #annotation_custom(grob= tableGrob(gas.prop),xmin=2005,xmax=2005,ymin=4000000,ymax=6000000) 
 
 # totals by dist type
 dist.tot <- dist.em[,.(dist.tot=sum(`Total CO2`,`Total CO`,`Total CH4`)), by=.(year,dist)]
+# tried to put all values in one data.frame so that the legend would have the tot also...did not
+# work, don't know why...left it for now
+# dist <- c(dist,rep("total",27))
+# year <-c(dist.tot$year,1985:2011)
+# em <- c(dist.tot$dist.tot,tot.em$tot)
+# all.em <- as.data.frame(cbind(year,dist,em))
+# g.emissions <-  ggplot(data=all.em) +
+#                        geom_line(aes(x=year,y=em,fill=dist,group=dist,colour=dist), size=1.2, linetype=2) + 
+#   theme(legend.position=c(0.9,0.62))
+
 g.emissions.tot +geom_line(data=dist.tot,aes(x=year,y=dist.tot,fill=dist,group=dist,colour=dist), 
                            size=1.2, linetype=2) + theme(legend.position=c(0.9,0.62))
 ggsave(file=paste(outfigs,"Figure9_DistEmissions.jpeg",sep=""))  
+
+# NIR Comparison-------------------------------------------------------------------------
+
+# Growth curves--------------------
+NIR.curves <- fread("C:/Celine/sync2/Sync/CBM_runs/NIRgrowth_curve_details.csv",sep=",",header=TRUE)
+NIR.curves[is.na(NIR.curves)] <- 0
+NIRc1 <-melt(NIR.curves,id.vars = c("gcid","forest_type"),
+             variable.name = "ageclass", value.name = "growth")
+g.NIRc1 <- ggplot(data=NIRc1,aes(x=as.numeric(ageclass),y=growth,colour=interaction(gcid,forest_type))) +
+  geom_line() +theme(legend.position="none")
+# END growth curves-----------------
+
+#Total Ecosystem, this is copied from the CASFRI_SK_Recliner_vs_NIR2015_Version6.xlxs 
+# QAQC spreadsheet ----------------------------------------------------------------
+#require(bit64)
+compare.totE <- fread(paste(indir,"NIRComparison/Compare_TotE.csv",sep=""),sep=",",header=TRUE)
+
+g.compare.totE <- ggplot(data=compare.totE,aes(x=SimYear,y=totlE,fill=DB_Source,coulor=DB_Source)) +geom_line()
+
+diff.totE.NIR <- compare.totE[DB_Source=="SK_NIR" & SimYear==2013]$totlE - compare.totE[DB_Source=="SK_NIR" & SimYear==1990]$totlE
+diff.totE.CAS <- compare.totE[DB_Source=="SK_Recliner" & SimYear==2012]$totlE - compare.totE[DB_Source=="SK_Recliner" & SimYear==1984]$totlE
+# > diff.totE.NIR
+# [1] -67274739
+# > diff.totE.CAS
+# [1] 9164768
+diff.totE.NIR1 <- compare.totE[DB_Source=="SK_NIR" & SimYear==2012]$totlE - compare.totE[DB_Source=="SK_NIR" & SimYear==1990]$totlE
+diff.totE.CAS1 <- compare.totE[DB_Source=="SK_Recliner" & SimYear==2012]$totlE - compare.totE[DB_Source=="SK_Recliner" & SimYear==1990]$totlE
+# [1] -66018471
+# > diff.totE.CAS1
+# [1] 4089597
+# END Total Ecosystem -------------------------------------------------------------
+
+# compare C density?
+
+# Compare fluxes ----------------------------
+compare.flux <- fread(paste(indir,"NIRComparison/Compare_Fluxes.csv",sep=""),sep=",",header=TRUE)
+comp.flux <- melt(compare.flux,id.vars = c("DB_Source","SimYear"),variable.name = "flux",
+                 value.name = "MgC")
+
+setnames(comp.flux,names(comp.flux),c("Simulation","Year","flux","MgC"))
+library(plyr)
+comp.flux$Simulation <- revalue(x = comp.flux$Simulation,c("SK_NIR"="Reporting","SK_Recliner"="Spatial"))
+
+g.comp.flux <- ggplot(data=comp.flux,aes(x=Year,y=MgC,group=interaction(Simulation,flux),
+                                         colour=interaction(Simulation,flux))) + 
+  geom_line(size=1.2) + geom_hline() + scale_colour_manual(values=cbPalette)
+ggsave(g.comp.flux,filename = paste(outfigs,"Figure10_CompareFluxes.jpeg",sep=""))
+# End Comppared fluxes-----------------------
+
+# compare #ha disturbed--------------------------------------
+ha.dist.spatial <- fread(paste(indir,"NIRComparison/DistHa.csv",sep=""),sep=",",header=TRUE)
+ha.dist.spatial <- ha.dist.spatial[TimeStep!=0 & TimeStep!=28]
+ha.dist.NIR <- fread(paste(indir,))
+tot.ha.dist <- ha.dist[,.(Total.ha = sum(`Area Disturbed`)),by="DB_Source"]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
