@@ -307,16 +307,51 @@ ggsave(g.comp.flux,filename = paste(outfigs,"Figure10_CompareFluxes.jpeg",sep=""
 # compare #ha disturbed--------------------------------------
 ha.dist.spatial <- fread(paste(indir,"NIRComparison/DistHa.csv",sep=""),sep=",",header=TRUE)
 ha.dist.spatial <- ha.dist.spatial[TimeStep!=0 & TimeStep!=28]
-ha.dist.NIR <- fread(paste(indir,))
-tot.ha.dist <- ha.dist[,.(Total.ha = sum(`Area Disturbed`)),by="DB_Source"]
+ha.dist.spatial[,"TimeStep" := NULL]
+setnames(ha.dist.spatial,names(ha.dist.spatial),c("DB_Source","Disturbance","Year","ha"))
+# keep only 1990-2011
+ha.dist.spatial <- ha.dist.spatial[Year>1989]
 
+ha.dist.NIR <- fread(paste(indir,"NIRComparison/NIR_DisturbedArea_byType.csv",sep=""),sep=",",header=TRUE)
+ha.dist.NIR <- ha.dist.NIR[,c("TimeStep","DistTypeName") := NULL]
+ha.dist.NIR <- ha.dist.NIR[,.(ha=sum(`Area Disturbed`)),by=.(DB_Source,Disturbance,Year)]
+# keep only 1990-2011
+ha.dist.NIR <- ha.dist.NIR[Year<2012]
 
+ha.dist <- rbind(ha.dist.spatial,ha.dist.NIR)
 
+tot.ha.dist.yr <- ha.dist[,.(Total.ha = sum(ha)/1000000),by=DB_Source]
+# > tot.ha.dist.yr
+# DB_Source Total.ha
+# 1:   Spatial 1.170955
+# 2: Reporting 4.433672
+g.dist.diff <- ggplot(data=ha.dist, aes(x=Year,y=ha/1000000, 
+                                         group=DB_Source,fill=interaction(DB_Source,Disturbance))) +
+  geom_bar(stat="identity",position="dodge") + ylab("Mha") + 
+scale_colour_manual(values=cbPalette)
+ggsave(g.dist.diff,file=paste(outfigs,"Figure11_CompareDist.jpeg",sep=""))
 
+g.tot.diff <- ggplot(data=ha.dist, aes(x=Year,y=ha/1000000, group=DB_Source, fill=DB_Source)) +
+  geom_bar(stat="identity",position="dodge") + ylab("Mha")
+ggsave(g.tot.diff,file=paste(outfigs,"Figure11_CompareDistTOTAL.jpeg",sep=""))
 
+g.fire.diff <- ggplot(data=ha.dist[Disturbance=="fires"], aes(x=Year,y=ha/1000000, group=DB_Source, fill=DB_Source)) +
+  geom_bar(stat="identity",position="dodge") + ylab("Mha")
+ggsave(g.fire.diff,file=paste(outfigs,"Figure11_CompareDistFIRE.jpeg",sep=""))
 
+g.harv.diff <- ggplot(data=ha.dist[Disturbance=="harvest"], aes(x=Year,y=ha/1000000, group=DB_Source, fill=DB_Source)) +
+  geom_bar(stat="identity",position="dodge") + ylab("Mha")
+ggsave(g.harv.diff,file=paste(outfigs,"Figure11_CompareDistHARVEST.jpeg",sep=""))
 
+g.defor.diff <- ggplot(data=ha.dist[Disturbance=="deforestation"], aes(x=Year,y=ha/1000000, group=DB_Source, fill=DB_Source)) +
+  geom_bar(stat="identity",position="dodge") + ylab("Mha")
+ggsave(g.defor.diff,file=paste(outfigs,"Figure11_CompareDistDEFOR.jpeg",sep=""))
 
+g.mort20.diff <- ggplot(data=ha.dist[Disturbance=="mortality20"], aes(x=Year,y=ha/1000000, group=DB_Source, fill=DB_Source)) +
+  geom_bar(stat="identity",position="dodge") + ylab("Mha")
+ggsave(g.defor.diff,file=paste(outfigs,"Figure11_CompareDistMORT20.jpeg",sep=""))
+
+mort20.ha.dist.yr <- ha.dist[Disturbance=="mortality20",.(Total.ha = sum(ha)/1000000),by=DB_Source]
 
 
 
