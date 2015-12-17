@@ -58,8 +58,8 @@ dist.yr <- cbind(year,dist.yr)
 # get rid of 1984 and 2012 b/c of 0 hectares disturbed
 dist.yr <- dist.yr[ha>0]
 
-g2 <- ggplot(data=dist.yr,aes(x=year,y=ha/1000,group=disturbance,fill=disturbance)) + 
-  geom_bar(stat="identity") + ylab("1000ha") + theme(legend.position=c(0.1,0.65))
+g2 <- ggplot(data=dist.yr,aes(x=year,y=ha/1000000,group=disturbance,fill=disturbance)) + 
+  geom_bar(stat="identity") + ylab("Mha") + theme(legend.position=c(0.1,0.65))
 ggsave(g2,file=paste(outfigs,"Figure5_haDistyr.jpeg",sep=""))
 # end dist per year---------------------------------
 
@@ -78,8 +78,10 @@ library(plyr)
 strata <- revalue(growth1$stratum,c("BSG"="BSGood","BSM"="BSMedium","TAM"="TA","WSG"="WSGood","WSM"="WSMedium"))
 growth <- cbind(growth1[,stratum:= NULL],strata)
 g3 <- ggplot(data=growth,aes(x=plot.age,y=memT.notagyhat,group=strata,colour=strata)) + 
-  geom_line(size=1)
+  geom_line(size=1) + ylab("m3/ha")
 g3 + theme(legend.position=c(0.1,0.65))
+
+ggsave(file=paste(outfigs,"growthCurves.jpeg",sep=""))
 
 #+  scale_fill_brewer(palette="Spectral")
 # end of growth curves-----------------------------------------------------
@@ -242,6 +244,11 @@ g.emissions.tot <- ggplot(data=tot.em,aes(x=year,y=tot)) +
 
 # totals by dist type
 dist.tot <- dist.em[,.(dist.tot=sum(`Total CO2`,`Total CO`,`Total CH4`)), by=.(year,dist)]
+year <- 1985:2011
+dist <- rep("Total",27)
+add.tot <- as.data.table(cbind(year,dist,tot))
+setnames(add.tot,names(add.tot),c("year","dist","dist.tot"))
+dist.tot2 <- rbind(add.tot,dist.tot)
 # tried to put all values in one data.frame so that the legend would have the tot also...did not
 # work, don't know why...left it for now
 # dist <- c(dist,rep("total",27))
@@ -252,9 +259,13 @@ dist.tot <- dist.em[,.(dist.tot=sum(`Total CO2`,`Total CO`,`Total CH4`)), by=.(y
 #                        geom_line(aes(x=year,y=em,fill=dist,group=dist,colour=dist), size=1.2, linetype=2) + 
 #   theme(legend.position=c(0.9,0.62))
 
-g.emissions.tot +geom_line(data=dist.tot,aes(x=year,y=dist.tot,fill=dist,group=dist,colour=dist), 
-                           size=1.2, linetype=2) + theme(legend.position=c(0.9,0.62))
-ggsave(file=paste(outfigs,"Figure9_DistEmissions.jpeg",sep=""))  
+# g.emissions.tot +geom_line(data=dist.tot,aes(x=year,y=dist.tot,fill=dist,group=dist,colour=dist), 
+#                            size=1.2, linetype=2) + theme(legend.position=c(0.9,0.62))
+# ggsave(file=paste(outfigs,"Figure9_DistEmissions.jpeg",sep=""))  
+g.emissions.tot2 <- ggplot(data=dist.tot2,aes(x=year,y=dist.tot/1000000,fill=dist,group=dist,colour=dist,linetype=dist)) +
+  geom_line(size=1.2) + theme(legend.position=c(0.9,0.62)) + ylab("TgC") +
+  scale_colour_manual(values = c("#E69F00", "#56B4E9", "#009E73","black"))
+ggsave(file=paste(outfigs,"Figure9_DistEmissions.jpeg",sep=""))    
 
 # NIR Comparison-------------------------------------------------------------------------
 
@@ -264,7 +275,8 @@ NIR.curves[is.na(NIR.curves)] <- 0
 NIRc1 <-melt(NIR.curves,id.vars = c("gcid","forest_type"),
              variable.name = "ageclass", value.name = "growth")
 g.NIRc1 <- ggplot(data=NIRc1,aes(x=as.numeric(ageclass),y=growth,colour=interaction(gcid,forest_type))) +
-  geom_line() +theme(legend.position="none")
+  geom_line() + ylab("m3/ha") + xlab("Age Class") + theme(legend.position="none")
+ggsave(g.NIRc1, file=paste(outfigs,"Figure11_NIRgrowthCurves.jpeg",sep=""))
 # END growth curves-----------------
 
 #Total Ecosystem, this is copied from the CASFRI_SK_Recliner_vs_NIR2015_Version6.xlxs 
@@ -290,14 +302,22 @@ diff.totE.CAS1 <- compare.totE[DB_Source=="SK_Recliner" & SimYear==2012]$totlE -
 # [1] 1.323402
 # END Total Ecosystem -------------------------------------------------------------
 
-# compare C density?
+# compare C density-------------
+compare.avgDensity <- compare.totE[,.(Avg = mean(totlE), sd=sd(totlE)), by=DB_Source]
+
 
 # Compare fluxes ----------------------------
 compare.flux <- fread(paste(indir,"NIRComparison/Compare_Fluxes.csv",sep=""),sep=",",header=TRUE)
 compare.flux <-compare.flux[,.(DB_Source,SimYear,NPP = NPP/as.numeric(ha),Rh = Rh/as.numeric(ha),NEP=NEP/as.numeric(ha),NBP=NBP/ha)]
-area.flux <- compare.flux[,c("NPP","Rh","NEP","NBP") := NULL]
 compare.flux <- fread(paste(indir,"NIRComparison/Compare_Fluxes.csv",sep=""),sep=",",header=TRUE)
-
+area.flux <- compare.flux[,c("NPP","Rh","NEP","NBP") := NULL]
+comp.area.avg <- area.flux[,.(avg = mean(ha), sd=sd(ha), max=max(ha)), by=DB_Source]
+# > comp.area.avg
+# DB_Source      avg       sd      max
+# 1:      SK_NIR 12552686    0.000 12552686
+# 2: SK_Recliner  5706787 3983.169  5712993
+ratio.area <- 5712993/12552686
+compare.flux <- compare.flux[,"ha" := NULL]
 comp.flux <- melt(compare.flux,id.vars = c("DB_Source","SimYear"),variable.name = "flux",
                  value.name = "MgC")
 
@@ -307,8 +327,10 @@ comp.flux$Simulation <- revalue(x = comp.flux$Simulation,c("SK_NIR"="Reporting",
 
 g.comp.flux <- ggplot(data=comp.flux,aes(x=Year,y=MgC,group=interaction(Simulation,flux),
                                          colour=interaction(Simulation,flux))) + 
-  geom_line(size=1.2) + geom_hline() + ylab("MgC/ha") + scale_colour_manual(values=cbPalette)
-ggsave(g.comp.flux,filename = paste(outfigs,"Figure10_CompareFluxes.jpeg",sep=""))
+  geom_line(size=1.2) + geom_hline() + ylab("MgC") +#"MgC/ha
+  scale_colour_manual(values=cbPalette)
+#ggsave(g.comp.flux,filename = paste(outfigs,"Figure10_CompareFluxes.jpeg",sep=""))
+#ggsave(g.comp.flux,filename = paste(outfigs,"Figure10_CompareFluxesTOTALS.jpeg",sep=""))
 # End Comppared fluxes-----------------------
 
 # compare #ha disturbed--------------------------------------
