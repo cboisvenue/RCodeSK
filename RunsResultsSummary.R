@@ -13,8 +13,12 @@
 library(data.table)
 library(ggplot2)
 
-indir <- "C:/Celine/sync2/Sync/CBM_runs/CASFRI_results/"
-outfigs <- "C:/Celine/sync2/Sync/Figures/"
+# January 4th - Byron confirmed that all the up-to-date runs are on M NOT on Sync 
+# anymore for the 30mRuns manuscript
+indir <- "M:/Spatially_explicit/01_Projects/07_SK_30m/Working/Sask_runs/11_CASFRI/results/"
+  #"C:/Celine/sync2/Sync/CBM_runs/CASFRI_results/"
+outfigs <- "M:/Spatially_explicit/01_Projects/07_SK_30m/Working/Sask_runs/11_CASFRI/results/figures/"
+#"C:/Celine/sync2/Sync/Figures/"
 
 list.files(indir)
 
@@ -44,10 +48,11 @@ g1 <- ggplot(age1stLast,aes(x=group,y=ha/1000000,group=year,fill=year)) +
   geom_bar(stat="identity",position="dodge") +
   xlab("10-year Age Classes") + ylab("Mha") +
   theme(legend.position=c(0.85,0.8)) + scale_fill_manual(values=c("#3399CC","#000066"))
+ggsave(g1, file=paste(outfigs,"Figure4_AgeClassDist.jpeg",sep=""))
 # age class done-------------------------------------------------
 
 # disturbances per year  ----------------------------
-distsums <- fread(paste(indir,"ToolboxResults/AllDisturbance.csv",sep=""),sep=",",header=TRUE)
+distsums <- fread(paste(indir,"ToolboxResults/AllCASFRI_tb_AllDisturbance.csv",sep=""),sep=",",header=TRUE)
 names(distsums)
 setnames(distsums,names(distsums),c("timestep","fire","harvest","deforestation","mortality 20%"))
 dist.yr <- melt(distsums, id.vars = c("timestep"),
@@ -79,7 +84,7 @@ cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2",
 library(plyr)
 strata <- revalue(growth1$stratum,c("BSG"="BSGood","BSM"="BSMedium","TAM"="TA","WSG"="WSGood","WSM"="WSMedium"))
 growth <- cbind(growth1[,stratum:= NULL],strata)
-g3 <- ggplot(data=growth,aes(x=plot.age,y=memT.notagyhat,group=strata,colour=strata)) + 
+g3 <- ggplot(data=growth,aes(x=plot.age,y=memT.notagyhat,group=strata,colour=strata,linetype=strata)) + 
   geom_line(size=1) + ylab("m3/ha") + scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7","black"))
 g3 + theme(legend.position=c(0.1,0.65)) 
   
@@ -153,7 +158,7 @@ multiplot(plot.er1,plot.er2)
 
 # carbon values are in metric tonnes/megagrams of C --------------------------------
 # stocks--------------
-stocks <- fread(paste(indir,"ToolboxResults/total_ecosystemCStocks_total.csv",sep=""),sep=",",header=TRUE)
+stocks <- fread(paste(indir,"ToolboxResults/AllCASFRI_tb_totalEcosystem_stocks_total.csv",sep=""),sep=",",header=TRUE)
 year <- 1984:2012
 stocks <- cbind(year,stocks)
 g.stocks <- ggplot(data=stocks,aes(x=year,y=`Total Ecosystem`,group=1)) + geom_line(size=1)
@@ -162,34 +167,37 @@ stocks.84 <- stocks[year=="1984"]
 stocks.12 <- stocks[year=="2012"]
 # if the values are already in Mg...here it becomes 10^12 (teragrams)
 d.stocks <- (stocks.12$`Total Ecosystem` - stocks.84$`Total Ecosystem`)/1000000
-avgStock <- 
+# > d.stocks
+# [1] 17.97838
 # for NIR comparison
 stocks.90 <- stocks[year=="1990"]
 stocks.12 <- stocks[year=="2012"]
 # if the values are already in Mg...here it becomes 10^12 (teragrams)
 d.stocks2 <- (stocks.12$`Total Ecosystem` - stocks.90$`Total Ecosystem`)/1000000
+# d.stocks2
+# [1] 7.510757
 # end of stocks--------
 
 # carbon density -----------------
-Cdensity <- fread(paste(indir,"ToolboxResults/totalEcosystemStocks_perHa.csv",sep=""),sep=",",header=TRUE)
+Cdensity <- fread(paste(indir,"ToolboxResults/AllCASFRI_tb_totalEcosystem_stocks_perHa.csv",sep=""),sep=",",header=TRUE)
 year <- 1984:2012
 Cdensity <- cbind(year,Cdensity)
-g.density <- ggplot(data=Cdensity,aes(x=year,y=`perHa Total Ecosystem`,group=1)) + geom_line(size=1)
+g.density <- ggplot(data=Cdensity,aes(x=year,y=`Total Ecosystem`,group=1)) + geom_line(size=1)
 # g.stocks +ggtitle("Total Ecosystem Carbon")
-avgDensity <- Cdensity[,.(Avg = mean(`perHa Total Ecosystem`), sd=sd(`perHa Total Ecosystem`))]
-avgArea <- Cdensity[,.(Avg = mean(hectares), sd=sd(hectares))]
+avgDensity <- Cdensity[,.(Avg = mean(`Total Ecosystem`), sd=sd(`Total Ecosystem`))]
+# don't are areas right now...
+#avgArea <- Cdensity[,.(Avg = mean(hectares), sd=sd(hectares))]
 # END carbon density -------------
 
 # Fluxes through time, totals in tonnes of C (megaGrams)
 # NBP/NEP----------------------------
-nppnep <- fread(paste(indir,"ToolboxResults/NEP&NPP_totals.csv",sep=""),sep=",",header=TRUE)
-nppnep[,c("V4","V5") := NULL]
+nppnep <- fread(paste(indir,"ToolboxResults/AllCASFRI_tb_NPP_NEP.csv",sep=""),sep=",",header=TRUE)
 setnames(nppnep,names(nppnep),c("timestep","NPP","NEP"))
 year <- 1984:2012
 nppnep <- cbind(year,nppnep)
 nppnep <- nppnep[2:29,]
 
-nbp <-  fread(paste(indir,"ToolboxResults/NBP_total.csv",sep=""),sep=",",header=TRUE)
+nbp <-  fread(paste(indir,"ToolboxResults/AllCASFRI_tb_NBP.csv",sep=""),sep=",",header=TRUE)
 setnames(nbp,names(nbp),c("timestep","NBP"))
 nbp <- nbp[timestep>0]
 year <- 1985:2012
@@ -208,7 +216,7 @@ ggsave(g.fluxes,file=paste(outfigs,"Figure8_fluxesTotal.jpeg",sep=""))
 
 
 # ABGbiomass -----------------------------
-agbiom <- fread(paste(indir,"ToolboxResults/agBiomass_totals.csv",sep=""),sep=",",header=TRUE)
+agbiom <- fread(paste(indir,"ToolboxResults/AllCASFRI_tb_agBiomass_totals.csv",sep=""),sep=",",header=TRUE)
 agbiom <- agbiom[,c("Foliage(SW) + Foliage(HW)","Other(SW) + Other(HW)","Merch(SW) + Merch(HW)") := NULL]
 year <- 1984:2012
 agbiom <- cbind(year,agbiom)
@@ -217,16 +225,22 @@ g.abgbiom <- ggplot(data=agbiom,aes(x=year,y=`Aboveground Biomass`)) + geom_line
 
 # emissions ------------------------------
 
-fire <- fread(paste(indir,"ToolboxResults/FireEmissionsBySource.csv",sep=""),sep=",",header=TRUE)
-harv <- fread(paste(indir,"ToolboxResults/HarvestEmissionsBySource.csv",sep=""),sep=",",header=TRUE)
-defor <-fread(paste(indir,"ToolboxResults/DeforestationEmissionsBySource.csv",sep=""),sep=",",header=TRUE)
+fire <- fread(paste(indir,"ToolboxResults/AllCASFRI_tb_WildfireEmissionsBySource.csv",sep=""),sep=",",header=TRUE)
+# we changed from clearcut with slash burning to clearcut with slavage so there is no emissions
+# from harvest anymore
+#harv <- fread(paste(indir,"ToolboxResults/HarvestEmissionsBySource.csv",sep=""),sep=",",header=TRUE)
+defor <-fread(paste(indir,"ToolboxResults/AllCASFRI_tb_DeforestationEmissionsBySource.csv",sep=""),sep=",",header=TRUE)
+both <-rbind(fire, defor)
+both <- both[`Total CH4`>0]
 
-dist <- c(rep("fire",27),rep("harvest",27),rep("deforestation",27))
-dist.em <- cbind(rbind(fire,harv,defor),dist)
+dist <- c(rep("fire",27),rep("deforestation",27))#rep("harvest",27),
+year <- rep(1985:2011,2)
+dist.em <- cbind(year,both[,TimeStep :=NULL],dist)
+#setnames(dist.em,names(dist.em), c("year","Total CO2","Total CO","Total CH4","dist"))
 
 # calculate total emissions from dist by gas 
-# Checked: this matches the StinsonTable_v2.xls values lines 37+38
-tot.em <- dist.em[,.(tot.CO2 = sum(`Total CO2`), tot.CO = sum(`Total CO`),tot.CH4 = sum(`Total CH4`)), by=`year`]
+# Checked: this matches the StinsonTable_v3.xls 
+tot.em <- dist.em[,.(tot.CO2 = sum(`Total CO2`), tot.CO = sum(`Total CO`),tot.CH4 = sum(`Total CH4`)), by=year]
 tot<- tot.em[,.(tot = (tot.CO2+tot.CO+tot.CH4))]
 tot.em <- cbind(tot.em,tot)
 CO2 <- mean(tot.em[,(CO2 = (tot.CO2/tot)*100)]) # 90%
@@ -268,13 +282,13 @@ dist.tot2 <- rbind(add.tot,dist.tot)
 # ggsave(file=paste(outfigs,"Figure9_DistEmissions.jpeg",sep=""))  
 g.emissions.tot2 <- ggplot(data=dist.tot2,aes(x=year,y=dist.tot/1000000,fill=dist,group=dist,colour=dist,linetype=dist)) +
   geom_line(size=1.2) + theme(legend.position=c(0.9,0.62)) + ylab("TgC") +
-  scale_colour_manual(values = c("#E69F00", "#56B4E9", "#009E73","black"))
+  scale_colour_manual(values = c("#56B4E9","#E69F00","black"))
 ggsave(file=paste(outfigs,"Figure9_DistEmissions.jpeg",sep=""))    
 
 # NIR Comparison-------------------------------------------------------------------------
 #---------------------------------------------------------------------------------------------------
 # Growth curves--------------------
-NIR.curves <- fread("C:/Celine/sync2/Sync/CBM_runs/NIRgrowth_curve_details.csv",sep=",",header=TRUE)
+NIR.curves <- fread(paste(indir,"NIRComparison/NIRgrowth_curve_details.csv",sep=""),sep=",",header=TRUE)
 NIR.curves[is.na(NIR.curves)] <- 0
 NIRc1 <-melt(NIR.curves,id.vars = c("gcid","forest_type"),
              variable.name = "ageclass", value.name = "growth")
@@ -296,13 +310,13 @@ g.compare.totE <- ggplot(data=compare.totE,aes(x=SimYear,y=totlE,fill=DB_Source,
 diff.totE.NIR <- compare.totE[DB_Source=="SK_NIR" & SimYear==2013]$totlE - compare.totE[DB_Source=="SK_NIR" & SimYear==1990]$totlE
 diff.totE.CAS <- compare.totE[DB_Source=="SK_Recliner" & SimYear==2012]$totlE - compare.totE[DB_Source=="SK_Recliner" & SimYear==1984]$totlE
 # > diff.totE.CAS
-# [1] 9164768
+# [1] 12324734
 # > diff.totE.NIR
 # [1] -67274739
 diff.totE.NIR1 <- compare.totE[DB_Source=="SK_NIR" & SimYear==2012]$totlE - compare.totE[DB_Source=="SK_NIR" & SimYear==1990]$totlE
 diff.totE.CAS1 <- compare.totE[DB_Source=="SK_Recliner" & SimYear==2012]$totlE - compare.totE[DB_Source=="SK_Recliner" & SimYear==1990]$totlE
 #> diff.totE.CAS1
-# [1] 4089597
+# [1] 7128516
 # > diff.totE.NIR1
 # [1] -66018471
 # END Total Ecosystem -------------------------------------------------------------
@@ -312,7 +326,7 @@ compare.avgDensity <- compare.totE[,.(Avg = mean(totlE.ha), sd=sd(totlE.ha)), by
 # DB_Source      Avg        sd
 # 1:      SK_NIR 324.1308 2.8984050
 # 2: SK_Recliner 357.9183 0.6007114
-
+##HERE!!
 # Compare fluxes ----------------------------
 compare.flux <- fread(paste(indir,"NIRComparison/Compare_Fluxes.csv",sep=""),sep=",",header=TRUE)
 compare.flux.ha <-compare.flux[,.(DB_Source,SimYear,NPP.ha = NPP/as.numeric(ha),Rh.ha = Rh/as.numeric(ha),NEP.ha=NEP/as.numeric(ha),NBP.ha=NBP/ha)]
