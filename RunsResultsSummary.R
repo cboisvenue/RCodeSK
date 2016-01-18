@@ -77,18 +77,17 @@ g4 <- ggplot(data=domspsha,aes(x=Name,y=hectares,fill=Name)) + geom_bar(stat="id
 # end of species---------------------------------------
 
 # Growth curves-----------------------------------------------------------
-growth1 <- fread("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/CBoisvenue/CleanedUpForUsing/MEMPredictedGrowth_noTAG.txt",sep=",",header=TRUE)
+growth1 <- fread("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/Sask_runs/PSP_YieldTables/GrowthTables_PSP.csv",sep=",",header=TRUE)
 # changing the names of the strata
 cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7","black")
 
 library(plyr)
-strata <- revalue(growth1$stratum,c("BSG"="BSGood","BSM"="BSMedium","TAM"="TA","WSG"="WSGood","WSM"="WSMedium"))
+strata <- revalue(growth1$stratum,c("BSG"="BSGood","BSM"="BSMedium","TAM"="TAMedium","TAG"="TAGood","WSG"="WSGood","WSM"="WSMedium"))
 growth <- cbind(growth1[,stratum:= NULL],strata)
-g3 <- ggplot(data=growth,aes(x=plot.age,y=memT.notagyhat,group=strata,colour=strata,linetype=strata)) + 
+growth<- melt(growth,id.vars = c("dom","prodClass","strata"),
+              variable.name = "Age", value.name = "TotVol")
+g3 <- ggplot(data=growth,aes(x=as.numeric(Age),y=TotVol,group=strata,colour=strata,linetype=strata)) + 
   geom_line(size=1) + ylab("m3/ha") + scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7","black"))
-g3 + theme(legend.position=c(0.1,0.65)) 
-  
-
 ggsave(file=paste(outfigs,"growthCurves.jpeg",sep=""))
 
 #+  scale_fill_brewer(palette="Spectral")
@@ -97,63 +96,64 @@ ggsave(file=paste(outfigs,"growthCurves.jpeg",sep=""))
 # growth model error-------------------------------------------
 
 # this is the model it is called memTnotag
-load("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/CBoisvenue/CleanedUpForUsing/GrowthCurvesMEModel_noTAG.RData")
-
-# error graph NOT SURE IF I NEED TO SHOW THESE--------------------------------------------
-error1 <- as.data.frame(cbind(c(1:length(residuals(memTnotag))),residuals(memTnotag)))
-names(error1) = c("Index","Error")
-plot.er1 <- ggplot(data=error1, aes(Index,Error)) + geom_point(size=2) +geom_hline(y=0,size=1) + theme(text = element_text(size=20))
-library(lme4)
-error2 <- as.data.frame(ranef(memTnotag)$PLOT_ID)
-names(error2) <- "Intercept"
-plot.er2 <- ggplot(data=error2,aes(sample=Intercept)) +stat_qq(shape=1) +theme(text = element_text(size=20))
-# Multiple plot functions
-#
-# ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
-# - cols:   Number of columns in layout
-# - layout: A matrix specifying the layout. If present, 'cols' is ignored.
-#
-# If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
-# then plot 1 will go in the upper left, 2 will go in the upper right, and
-# 3 will go all the way across the bottom.
-#
-multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
-  library(grid)
-  
-  # Make a list from the ... arguments and plotlist
-  plots <- c(list(...), plotlist)
-  
-  numPlots = length(plots)
-  
-  # If layout is NULL, then use 'cols' to determine layout
-  if (is.null(layout)) {
-    # Make the panel
-    # ncol: Number of columns of plots
-    # nrow: Number of rows needed, calculated from # of cols
-    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
-                     ncol = cols, nrow = ceiling(numPlots/cols))
-  }
-  
-  if (numPlots==1) {
-    print(plots[[1]])
-    
-  } else {
-    # Set up the page
-    grid.newpage()
-    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
-    
-    # Make each plot, in the correct location
-    for (i in 1:numPlots) {
-      # Get the i,j matrix positions of the regions that contain this subplot
-      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
-      
-      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
-                                      layout.pos.col = matchidx$col))
-    }
-  }
-}
-
-multiplot(plot.er1,plot.er2)
+load("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/CBoisvenue/Sask_runs/PSP_YieldTables/GrowthCurvesMEModel.RData")
+## This is now correct -  the model is ltotvollme -
+# everything commented needs to be updated to use that model
+      ## error graph NOT SURE IF I NEED TO SHOW THESE--------------------------------------------
+      # error1 <- as.data.frame(cbind(c(1:length(residuals(memTnotag))),residuals(memTnotag)))
+      # names(error1) = c("Index","Error")
+      # plot.er1 <- ggplot(data=error1, aes(Index,Error)) + geom_point(size=2) +geom_hline(y=0,size=1) + theme(text = element_text(size=20))
+      # library(lme4)
+      # error2 <- as.data.frame(ranef(memTnotag)$PLOT_ID)
+      # names(error2) <- "Intercept"
+      # plot.er2 <- ggplot(data=error2,aes(sample=Intercept)) +stat_qq(shape=1) +theme(text = element_text(size=20))
+      # # Multiple plot functions
+      # #
+      # # ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
+      # # - cols:   Number of columns in layout
+      # # - layout: A matrix specifying the layout. If present, 'cols' is ignored.
+      # #
+      # # If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
+      # # then plot 1 will go in the upper left, 2 will go in the upper right, and
+      # # 3 will go all the way across the bottom.
+      # #
+      # multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+      #   library(grid)
+      #   
+      #   # Make a list from the ... arguments and plotlist
+      #   plots <- c(list(...), plotlist)
+      #   
+      #   numPlots = length(plots)
+      #   
+      #   # If layout is NULL, then use 'cols' to determine layout
+      #   if (is.null(layout)) {
+      #     # Make the panel
+      #     # ncol: Number of columns of plots
+      #     # nrow: Number of rows needed, calculated from # of cols
+      #     layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+      #                      ncol = cols, nrow = ceiling(numPlots/cols))
+      #   }
+      #   
+      #   if (numPlots==1) {
+      #     print(plots[[1]])
+      #     
+      #   } else {
+      #     # Set up the page
+      #     grid.newpage()
+      #     pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+      #     
+      #     # Make each plot, in the correct location
+      #     for (i in 1:numPlots) {
+      #       # Get the i,j matrix positions of the regions that contain this subplot
+      #       matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      #       
+      #       print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+      #                                       layout.pos.col = matchidx$col))
+      #     }
+      #   }
+      # }
+      # 
+      # multiplot(plot.er1,plot.er2)
 # END of error plots-------------------------------------------------
 
 # carbon values are in metric tonnes/megagrams of C --------------------------------
@@ -294,7 +294,7 @@ NIRc1 <-melt(NIR.curves,id.vars = c("gcid","forest_type"),
              variable.name = "ageclass", value.name = "growth")
 g.NIRc1 <- ggplot(data=NIRc1,aes(x=as.numeric(ageclass),y=growth,colour=interaction(gcid,forest_type))) +
   geom_line() + ylab("m3/ha") + xlab("Age Class") + theme(legend.position="none")
-ggsave(g.NIRc1, file=paste(outfigs,"Figure11_NIRgrowthCurves.jpeg",sep=""))
+ggsave(g.NIRc1, file=paste(outfigs,"Figure12_NIRgrowthCurves.jpeg",sep=""))
 # END growth curves-----------------
 
 #Total Ecosystem, this is copied from the CASFRI_SK_Recliner_vs_NIR2015_Version6.xlxs 
@@ -355,45 +355,47 @@ comp.flux.ha$Simulation <- revalue(x = comp.flux.ha$Simulation,c("SK_NIR"="Repor
 
 g.comp.flux.tot <- ggplot(data=comp.flux.tot,aes(x=Year,y=MgC,group=interaction(Simulation,flux),
                                          colour=interaction(Simulation,flux))) + 
-  geom_line(size=1.2) + geom_hline() + ylab("MgC") +#"MgC/ha
+  geom_line(size=1.2) + geom_hline() + ylab("MgC") +
   scale_colour_manual(values=cbPalette)
 
-#ggsave(g.comp.flux,filename = paste(outfigs,"Figure10_CompareFluxesTOTALS.jpeg",sep=""))
+ggsave(g.comp.flux.tot,filename = paste(outfigs,"Figure10_CompareFluxesTOTALS.jpeg",sep=""))
 g.comp.flux.ha <- ggplot(data=comp.flux.ha,aes(x=Year,y=`MgC/ha`,group=interaction(Simulation,flux),
                                                  colour=interaction(Simulation,flux))) + 
   geom_line(size=1.2) + geom_hline() + ylab("MgC/ha") +
   scale_colour_manual(values=cbPalette)
-#ggsave(g.comp.flux,filename = paste(outfigs,"Figure10_CompareFluxes.jpeg",sep=""))
+#ggsave(g.comp.flux.ha,filename = paste(outfigs,"Figure10_CompareFluxes_peHa.jpeg",sep=""))
 # End Comppared fluxes-----------------------
 
 # compare #ha disturbed--------------------------------------
-ha.dist.spatial <- fread(paste(indir,"NIRComparison/DistHa.csv",sep=""),sep=",",header=TRUE)
+ha.dist.spatial <- fread(paste(indir,"NIRComparison/DistHa_v2.csv",sep=""),sep=",",header=TRUE)
 ha.dist.spatial <- ha.dist.spatial[TimeStep!=0 & TimeStep!=28]
 #this line if I want proportions
-ha.dist.spatial.percent<-ha.dist.spatial[,.(DB_Source,Disturbance,Year, percent=(`Area Disturbed`/`Total area`)*100)]
+#ha.dist.spatial.percent<-ha.dist.spatial[,.(DB_Source,Disturbance,Year, percent=(`Area Disturbed`/`Total area`)*100)]
 
 # otherwise
 ha.dist.spatial <- ha.dist.spatial[,c("TimeStep","Total area") := NULL]
-setnames(ha.dist.spatial,names(ha.dist.spatial),c("DB_Source","Disturbance","Year","ha"))
+DB_Source <- rep("Spatial",27)
+setnames(ha.dist.spatial,names(ha.dist.spatial),c("Disturbance","Year","ha"))
+ha.dist.spatial <- cbind(DB_Source,ha.dist.spatial)
 #setnames(ha.dist.spatial,names(ha.dist.spatial),c("DB_Source","Disturbance","Year","ha"))
 # keep only 1990-2011
 ha.dist.spatial <- ha.dist.spatial[Year>1989]
-ha.dist.spatial.percent <- ha.dist.spatial.percent[Year>1989]
+#ha.dist.spatial.percent <- ha.dist.spatial.percent[Year>1989]
 
 
-ha.dist.NIR <- fread(paste(indir,"NIRComparison/NIR_DisturbedArea_byType.csv",sep=""),sep=",",header=TRUE)
+ha.dist.NIR <- fread(paste(indir,"NIRComparison/NIR_DisturbedArea_byType_v2.csv",sep=""),sep=",",header=TRUE)
 ha.dist.NIR <- ha.dist.NIR[,c("TimeStep","DistTypeName") := NULL]
 ha.dist.NIR <- ha.dist.NIR[,.(ha=sum(`Area Disturbed`)),by=.(DB_Source,Disturbance,Year)]
 # keep only 1990-2011
 ha.dist.NIR <- ha.dist.NIR[Year<2012]
 setkey(ha.dist.NIR,Year)
 # these next 4 lines if I want to do proportions
-NIR.ha <- fread(paste(indir,"NIRComparison/NIR_areaCompare.csv",sep=""),sep=",",header=TRUE)
-setkey(NIR.ha,Year)
-ha.NIR <- merge(ha.dist.NIR,NIR.ha)
-ha.NIR <- ha.NIR[,.(DB_Source,Disturbance,Year, percent=(ha.x/ha.y)*100)]
+# NIR.ha <- fread(paste(indir,"NIRComparison/NIR_areaCompare.csv",sep=""),sep=",",header=TRUE)
+# setkey(NIR.ha,Year)
+# ha.NIR <- merge(ha.dist.NIR,NIR.ha)
+# ha.NIR <- ha.NIR[,.(DB_Source,Disturbance,Year, percent=(ha.x/ha.y)*100)]
 # for proportions
-ha.dist.percent <- rbind(ha.dist.spatial.percent,ha.NIR)
+# ha.dist.percent <- rbind(ha.dist.spatial.percent,ha.NIR)
 # for total ha
 ha.dist <- rbind(ha.dist.spatial,ha.dist.NIR)
 
@@ -406,38 +408,38 @@ g.dist.diff2 <- ggplot(data=ha.dist.percent, aes(x=Year,y=percent,
                                         group=DB_Source,fill=interaction(DB_Source,Disturbance))) +
   geom_bar(stat="identity",position="dodge") + scale_colour_manual(values=cbPalette)
 ggsave(g.dist.diff,file=paste(outfigs,"Figure11_CompareDistPercent.jpeg",sep=""))
-#HERE
-g.tot.diff <- ggplot(data=ha.dist, aes(x=Year,y=ha, group=DB_Source, fill=DB_Source)) +
-  geom_bar(stat="identity",position="dodge") 
+
+g.tot.diff <- ggplot(data=ha.dist, aes(x=Year,y=ha/1000000, group=DB_Source, fill=DB_Source)) +
+  geom_bar(stat="identity",position="dodge") + ylab("Mha")
 ggsave(g.tot.diff,file=paste(outfigs,"Figure11_CompareDistTOTALinHa.jpeg",sep=""))
 
-g.fire.diff <- ggplot(data=ha.dist[Disturbance=="fire"], aes(x=Year,y=percent, group=DB_Source, fill=DB_Source)) +
-  geom_bar(stat="identity",position="dodge") 
-ggsave(g.fire.diff,file=paste(outfigs,"Figure11_CompareDistFIRE.jpeg",sep=""))
+g.fire.diff <- ggplot(data=ha.dist[Disturbance=="fire"], aes(x=Year,y=ha/1000000, group=DB_Source, fill=DB_Source)) +
+  geom_bar(stat="identity",position="dodge") + ylab("Mha")
+ggsave(g.fire.diff,file=paste(outfigs,"Figure11_CompareDistFIREha.jpeg",sep=""))
 
-g.harv.diff <- ggplot(data=ha.dist[Disturbance=="harvest"], aes(x=Year,y=ha, group=DB_Source, fill=DB_Source)) +
-  geom_bar(stat="identity",position="dodge") 
+g.harv.diff <- ggplot(data=ha.dist[Disturbance=="harvest"], aes(x=Year,y=ha/1000000, group=DB_Source, fill=DB_Source)) +
+  geom_bar(stat="identity",position="dodge")  + ylab("Mha")
 ggsave(g.harv.diff,file=paste(outfigs,"Figure11_CompareDistHARVESTInHA.jpeg",sep=""))
-g.harv.diff2 <- ggplot(data=ha.dist.percent[Disturbance=="harvest"], aes(x=Year,y=percent, group=DB_Source, fill=DB_Source)) +
-  geom_bar(stat="identity",position="dodge") 
-ggsave(g.harv.diff2,file=paste(outfigs,"Figure11_CompareDistHARVESTpercent.jpeg",sep=""))
+# g.harv.diff2 <- ggplot(data=ha.dist.percent[Disturbance=="harvest"], aes(x=Year,y=percent, group=DB_Source, fill=DB_Source)) +
+#   geom_bar(stat="identity",position="dodge") 
+# ggsave(g.harv.diff2,file=paste(outfigs,"Figure11_CompareDistHARVESTpercent.jpeg",sep=""))
 
-g.defor.diff <- ggplot(data=ha.dist[Disturbance=="deforestation"], aes(x=Year,y=percent, group=DB_Source, fill=DB_Source)) +
-  geom_bar(stat="identity",position="dodge") 
-ggsave(g.defor.diff,file=paste(outfigs,"Figure11_CompareDistDEFOR.jpeg",sep=""))
+# g.defor.diff <- ggplot(data=ha.dist[Disturbance=="deforestation"], aes(x=Year,y=percent, group=DB_Source, fill=DB_Source)) +
+#   geom_bar(stat="identity",position="dodge") 
+# ggsave(g.defor.diff,file=paste(outfigs,"Figure11_CompareDistDEFOR.jpeg",sep=""))
+# 
+# g.mort20.diff <- ggplot(data=ha.dist[Disturbance=="mortality20"], aes(x=Year,y=percent, group=DB_Source, fill=DB_Source)) +
+#   geom_bar(stat="identity",position="dodge") 
+# ggsave(g.defor.diff,file=paste(outfigs,"Figure11_CompareDistMORT20.jpeg",sep=""))
+# 
+# mort20.ha.dist.yr <- ha.dist[Disturbance=="mortality20",.(Total.ha = sum(ha)/1000000),by=DB_Source]
 
-g.mort20.diff <- ggplot(data=ha.dist[Disturbance=="mortality20"], aes(x=Year,y=percent, group=DB_Source, fill=DB_Source)) +
-  geom_bar(stat="identity",position="dodge") 
-ggsave(g.defor.diff,file=paste(outfigs,"Figure11_CompareDistMORT20.jpeg",sep=""))
-
-mort20.ha.dist.yr <- ha.dist[Disturbance=="mortality20",.(Total.ha = sum(ha)/1000000),by=DB_Source]
-
-# For discussion
+# For discussion ----------------------------------------------------------------------------------
 #NIR harvest, all of SK ----------------------------------
 
-mdir = "M:/Spatially_explicit/01_Projects/07_SK_30m/Working/Sask_runs/CASFRI_results/"
+#mdir = "M:/Spatially_explicit/01_Projects/07_SK_30m/Working/Sask_runs/CASFRI_results/"
 
-NIRSK.harv <- fread(paste(mdir,"NIRComparison/NIR_harvestArea_ALL.csv",sep=""),sep=",",header=TRUE)
+NIRSK.harv <- fread(paste(indir,"NIRComparison/NIR_harvestArea_ALL.csv",sep=""),sep=",",header=TRUE)
 DB_Source <- rep("ALL_NIR",24)
 year <- 1990:2013
 NIRSK.harv <- cbind(DB_Source,year,NIRSK.harv)
@@ -458,7 +460,46 @@ ALL.harv <- rbind(ALL.harv,harv.spatial)
 
 g.ALL.harv <- ggplot(data=ALL.harv,aes(x=Year,y=ha/1000, group=DB_Source, fill=DB_Source)) +
          geom_bar(stat="identity",position="dodge") + ylab("Mha") +scale_fill_manual(values=c("#999999","#E69F00","#56B4E9","#009E73"))
-ggsave(g.ALL.harv,file=paste(outfigs,"HarvestedHa_All.jpeg",sep=""))
+ggsave(g.ALL.harv,file=paste(outfigs,"HarvestedHa_AllDiscussion.jpeg",sep=""))
 
+# Stocks breakdown for WK also see "Graphs_WK.Rmd" -------------------------------
+pools.comp <- fread(paste(indir,"NIRComparison/StocksCompareBreakdown_forWK.csv",sep=""),sep=",", header=TRUE)
+setnames(pools.comp,names(pools.comp),c("DB_Source","year","AG_Biomass","BG_Biomass","Deadwood",
+                                        "Litter","Soil_OM","TotalSoil_JM","TotalSnag_JM"))
+pools <- melt(pools.comp,id.vars = c("DB_Source","year"),variable.name = "Pool",
+              value.name = "MgC")
+g.pools.agBiomass <- ggplot(data=pools[Pool=="AG_Biomass"], aes(x=year,y=MgC/1000000,group=DB_Source,
+                                  colour=DB_Source)) +
+  geom_line(size=1) + ylab("TgC") + ggtitle("AG_Biomass")
+g.pools.bgBiomass <- ggplot(data=pools[Pool=="BG_Biomass"], aes(x=year,y=MgC/1000000,group=DB_Source,
+                                                                colour=DB_Source)) +
+  geom_line(size=1) + ylab("TgC") + ggtitle("BG_Biomass")
+g.pools.dead <- ggplot(data=pools[Pool=="Deadwood"], aes(x=year,y=MgC/1000000,group=DB_Source,
+                                                                colour=DB_Source)) +
+  geom_line(size=1) + ylab("TgC") + ggtitle("Deadwood")
 
+g.pools.litter <- ggplot(data=pools[Pool=="Litter"], aes(x=year,y=MgC/1000000,group=DB_Source,
+                                                         colour=DB_Source)) +
+  geom_line(size=1) + ylab("TgC") + ggtitle("Litter")
+g.pools.som <- ggplot(data=pools[Pool=="Soil_OM"], aes(x=year,y=MgC/1000000,group=DB_Source,
+                                                         colour=DB_Source)) +
+  geom_line(size=1) + ylab("TgC") + ggtitle("Soil_OM")
+g.pools.soilJM <- ggplot(data=pools[Pool=="TotalSoil_JM"], aes(x=year,y=MgC/1000000,group=DB_Source,
+                                                       colour=DB_Source)) +
+  geom_line(size=1) + ylab("TgC") + ggtitle("TotalSoil_JM")
+g.pools.snags <- ggplot(data=pools[Pool=="TotalSnag_JM"], aes(x=year,y=MgC/1000000,group=DB_Source,
+                                                               colour=DB_Source)) +
+  geom_line(size=1) + ylab("TgC") + ggtitle("TotalSnag_JM")
 
+# NIR Harvesting issued for WK
+# Harvest issues
+
+indir <- "M:/Spatially_explicit/01_Projects/07_SK_30m/Working/Sask_runs/11_CASFRI/results/"
+outfigs <- "M:/Spatially_explicit/01_Projects/07_SK_30m/Working/Sask_runs/11_CASFRI/results/figures/"
+
+cc.harvALL <- fread(paste(indir,"NIRComparison/HarvestDetails.csv",sep=""),sep=",", header=TRUE)
+cc.harvALL <- cc.harvALL[,c("V4","V5") :=NULL]
+cc.harvALL <- cc.harvALL[year!="NA"]
+g.cc.harv <- ggplot(data=cc.harvALL,aes(x=year,y=MgHarvested/1000000,group=DB_Source,colour=DB_Source)) +
+  geom_line(size=1) + ylab("TgC") + ggtitle(("Clear Cut Harvesting"))
+ggsave(g.cc.harv,file=paste(outfigs,"CompareTgC_Harvested.jpeg"))
