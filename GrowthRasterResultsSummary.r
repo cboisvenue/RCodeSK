@@ -54,6 +54,7 @@ rf.input <- fread("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/biomass_s
 
 # PSP no of measurement per species info----------------------------------
 #count the number of measurement per species
+# Figure 3
 psp.tree <- fread(paste(indir,"SK_2000TreeMeasurements.csv",sep=""),sep=",",header=TRUE)
 no.meas.psp <- psp.tree[,.(count = .N),by=dom]
 # better plot with a table
@@ -68,10 +69,30 @@ ggsave("C:/Celine/CelineSync/RES_Work/Work/JoanneWhite/SK_work/WritingBin/figure
 
 #Redoing figure 5 to ensure we are looking at all the same pixels through time
 raster.biom <- fread("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/growth/biomassHaEvaluation/RasterAvg_SD.txt",sep="\t",header=TRUE)
-pixel.biom <- ggplot(raster.biom, aes(year,avg.biomMask))
-pixel.biom + geom_point(colour="red")+ ylab("Mg/ha") + 
+pixel.biom <- ggplot(raster.biom, aes(year,avg.biomMask)) + geom_point(colour="red") +
+  geom_line(colour="red")+ ylab("Mg/ha") + 
   geom_errorbar(aes(ymin=avg.biomMask-1.96*sd.bioMask,ymax=avg.biomMask+1.96*sd.bioMask))
-## we see the same trends
+setnames(raster.biom,names(raster.biom),c("YEAR","mean","sd"))
+# add PSP info from Figure 4
+pspAvgAGB84 <- pspAvgBiom.yr[YEAR>1983]
+pspAvgAGB84 <- pspAvgAGB84[,no.plot := NULL]
+allABG.ha.yr <- rbind(raster.biom,pspAvgAGB84)
+Source <- c(rep("pixel",dim(raster.biom)[1]),rep("PSP",dim(pspAvgAGB84)[1]))
+allABG.ha.yr <- cbind(allABG.ha.yr,Source)
+
+fig5 <- ggplot(data=allABG.ha.yr,aes(YEAR,mean,group=Source,colour=Source, fill=Source)) + 
+  geom_point() + geom_line() + geom_errorbar(aes(ymin=(mean)-1.96*(sd),ymax=(mean)+1.96*(sd)))+
+  scale_colour_manual(values=c("black", "red"))
+
+
+g.psp84 <- ggplot(data=pspAvgAGB84,aes(YEAR,mean)) +
+  geom_point(aes(size=no.plot),colour="blue") +
+  geom_line(colour="blue") + 
+  geom_errorbar(aes(ymin=(mean)-1.96*(sd),ymax=(mean)+1.96*(sd)))
+g.psp84 + geom_point(data=raster.biom, aes(YEAR,mean),colour="red") + geom_line()
+  geom_errorbar(data=raster.biom, aes(ymin=mean-1.96*sd,ymax=mean+1.96*sd),colour="red")
+## we see the same trends with all the "undisturbed pixels through time
+
 
 
 

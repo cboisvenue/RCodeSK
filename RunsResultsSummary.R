@@ -503,3 +503,85 @@ cc.harvALL <- cc.harvALL[year!="NA"]
 g.cc.harv <- ggplot(data=cc.harvALL,aes(x=year,y=MgHarvested/1000000,group=DB_Source,colour=DB_Source)) +
   geom_line(size=1) + ylab("TgC") + ggtitle(("Clear Cut Harvesting"))
 ggsave(g.cc.harv,file=paste(outfigs,"CompareTgC_Harvested.jpeg"))
+
+#------- For discussion: differences between where we have CASFRI (i.e., where we modelled), 
+#--------and where the Landsat dist product says there were disturbances in the area overlap between
+#-------- the NIR and the CASFRI
+
+LSdistCASFRI <- fread(paste(indir,"disturbance/CASFRI_LS_distAreas.txt",sep=""),sep=",",header=TRUE)
+LSdistNOcasfri <- fread(paste(indir,"disturbance/CASFRI_null_LS_distAreas.txt",sep=""),sep=",",header=TRUE)
+SK_LSdist <- fread(paste(indir,"disturbance/SaskLS_distAreas.txt",sep=""),sep=",",header=TRUE)
+
+LScasfri <- melt(LSdistCASFRI,id.vars = c("year"),variable.name = "disturbance", value.name = "ha")
+SK_dist <- melt(SK_LSdist,id.vars = c("year"),variable.name = "disturbance", value.name = "ha")
+LSNOcasfri <- melt(LSdistNOcasfri,id.vars = c("year"),variable.name = "disturbance", value.name = "ha")
+DB_source <- c(rep("LScasfri",135),rep("ALL_SK_LS",135),rep("LSnoCasfri",135))
+distCompAll <- cbind(rbind(LScasfri,SK_dist,LSNOcasfri),DB_source)
+g.distCompAll <- ggplot(data=distCompAll,aes(x=year,y=ha,fill=DB_source,colour=DB_source)) +
+  geom_bar(stat="identity",position=c("dodge","stack"))
+ggsave(g.distCompAll,file=paste(outfigs,"ResolvingNoCASFRIdist/DisturbanceCompareAll.jpeg"))
+
+g.distSK_All <- ggplot(data=distCompAll[DB_source=="ALL_SK_LS"],aes(x=year,y=ha,fill=DB_source,colour=DB_source)) +
+  geom_bar(stat="identity",position="dodge")
+g.comp <- ggplot(data=distCompAll[DB_source=="LScasfri"|DB_source=="LSnoCasfri"],
+                        aes(x=year,y=ha,fill=DB_source,colour=DB_source)) +
+  geom_bar(stat="identity",position="stack")
+g.comp + geom_bar(data = distCompAll[DB_source=="ALL_SK_LS"],aes(x=year,y=ha),
+                  stat="identity",position="dodge")
+
+# Does adding the LScasfri to the LSNOcasfri equal the SK_dist?
+casNocas <- LScasfri[,ha]+LSNOcasfri[,ha]
+ans1 <- SK_dist[,ha]-casNocas
+# No, there are more dist outside the area we compare
+
+# how many hectares that are disturbed according to LS in the comparison area and not modelled
+# because of lack of CASFRI?
+ha.target <- LSNOcasfri[,sum(ha)]
+#[1] 813266.5
+
+# What disturbances are in those hectares?
+LSNO.dist <- LSNOcasfri[,sum(ha), by=disturbance]
+g.LSNoCasfri <- ggplot(data=LSNOcasfri ,aes(x=year,y=ha,fill=disturbance,colour=disturbance)) +
+  geom_bar(stat="identity",position="stack")
+# add the ha disturbed where there is no CASFRI to the ha disturbed in our compared area simulations 
+head(ha.dist)
+unique(ha.dist$DB_Source)
+#[1] "Spatial"   "Reporting"
+unique(ha.dist$Disturbance)
+#[1] "fire"          "mortality20"   "harvest"       "deforestation"
+
+comp.ha.dist.spatial <- ha.dist[DB_Source=="Spatial"]
+Disturbance <- revalue(LSNOcasfri$disturbance,c("FireArea"="fire","HarvestArea"="harvest",
+                                               "LcondArea"="mortality20","RoadArea"="deforestation",
+                                               "UnclassArea"="mortality20"))
+LS.add <- cbind(LSNOcasfri[,disturbance:= NULL],Disturbance)
+LS.add <- LS.add[year>1989]
+setnames(LS.add,names(LS.add),c("Year","ha","Disturbance"))
+
+# add a category where our dist are in the spatial sims is added to the "LSNOCasfri" area
+setkey(comp.ha.dist.spatial,Year,Disturbance)
+setkey(LS.add,Year,Disturbance)
+add1 <- merge(comp.ha.dist.spatial,LS.add)
+add2 <- add1[,.(both.dist = sum(ha.x+ha.y)),by=c("Year","Disturbance")]
+DB_Source <- rep("Spatial+",dim(add2)[1])
+add3 <- cbind(DB_Source,add2)
+setnames(add3,names(add3),c("DB_Source","Year","Disturbance","ha"))
+setcolorder(add3,c("DB_Source","Disturbance","Year","ha"))
+spatial.plus <- rbind(ha.dist,add3)
+
+g.spatialPlus <- ggplot(data=spatial.plus[DB_Source!="Spatial"],aes(x=Year,y=ha/1000000,group=DB_Source,fill=DB_Source))+
+  geom_bar(stat="identity",position="dodge") + ylab("Mha")
+ggsave(g.spatialPlus,file=paste(outfigs,file="ResolvingNoCASFRIdist/AllLandsatInComp.jpeg",sep=""))
+
+g.spatialPlus.fire <- ggplot(data=spatial.plus[DB_Source!="Spatial" & Disturbance=="fire"],aes(x=Year,y=ha/1000000,group=DB_Source,fill=DB_Source))+
+  geom_bar(stat="identity",position="dodge") + ylab("Mha")
+ggsave(g.spatialPlus.fire,file=paste(outfigs,file="ResolvingNoCASFRIdist/AllLandsatInCompFIRE.jpeg",sep=""))
+g.spatialPlus.harvest <- ggplot(data=spatial.plus[DB_Source!="Spatial" & Disturbance=="harvest"],aes(x=Year,y=ha/1000000,group=DB_Source,fill=DB_Source))+
+  geom_bar(stat="identity",position="dodge") + ylab("Mha")
+ggsave(g.spatialPlus.harvest,file=paste(outfigs,file="ResolvingNoCASFRIdist/AllLandsatInCompHarvest.jpeg",sep=""))
+
+# graph differences
+diff.dist.tot <- spatial.plus[,.(tot.ha=sum(ha)),by=c("DB_Source","Year")]
+diff.tot <- diff.dist.tot[DB_Source=="Reporting",.(tot.ha)] - diff.dist.tot[DB_Source=="Spatial",.(tot.ha)]
+## HERE
+diff.harvest <- diff.dist.tot[DB_Source=="Reporting"& Disturbance=="harvest",.(tot.ha)] - diff.dist.tot[DB_Source=="Spatial" & Disturbance=="harvest",.(tot.ha)]
