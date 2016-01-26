@@ -511,15 +511,19 @@ ggsave(g.cc.harv,file=paste(outfigs,"CompareTgC_Harvested.jpeg"))
 LSdistCASFRI <- fread(paste(indir,"disturbance/CASFRI_LS_distAreas.txt",sep=""),sep=",",header=TRUE)
 LSdistNOcasfri <- fread(paste(indir,"disturbance/CASFRI_null_LS_distAreas.txt",sep=""),sep=",",header=TRUE)
 SK_LSdist <- fread(paste(indir,"disturbance/SaskLS_distAreas.txt",sep=""),sep=",",header=TRUE)
+LsdistNoCasCompare <- fread(paste(indir,"disturbance/CASFRI_NULL_NIR_overlap_LS_distAreas.txt",sep=""),sep=",", header=TRUE)
+
 
 LScasfri <- melt(LSdistCASFRI,id.vars = c("year"),variable.name = "disturbance", value.name = "ha")
 SK_dist <- melt(SK_LSdist,id.vars = c("year"),variable.name = "disturbance", value.name = "ha")
 LSNOcasfri <- melt(LSdistNOcasfri,id.vars = c("year"),variable.name = "disturbance", value.name = "ha")
-DB_source <- c(rep("LScasfri",135),rep("ALL_SK_LS",135),rep("LSnoCasfri",135))
-distCompAll <- cbind(rbind(LScasfri,SK_dist,LSNOcasfri),DB_source)
+LSNoCasInCompare <- melt(LsdistNoCasCompare,id.vars = c("year"),variable.name = "disturbance", value.name = "ha")
+  
+DB_source <- c(rep("LScasfri",135),rep("ALL_SK_LS",135),rep("LSnoCasfri",135),rep("LSnoCasComp",135))
+distCompAll <- cbind(rbind(LScasfri,SK_dist,LSNOcasfri,LSNoCasInCompare),DB_source)
 g.distCompAll <- ggplot(data=distCompAll,aes(x=year,y=ha,fill=DB_source,colour=DB_source)) +
   geom_bar(stat="identity",position=c("dodge","stack"))
-ggsave(g.distCompAll,file=paste(outfigs,"ResolvingNoCASFRIdist/DisturbanceCompareAll.jpeg"))
+#ggsave(g.distCompAll,file=paste(outfigs,"ResolvingNoCASFRIdist/DisturbanceCompareAll.jpeg"))
 
 g.distSK_All <- ggplot(data=distCompAll[DB_source=="ALL_SK_LS"],aes(x=year,y=ha,fill=DB_source,colour=DB_source)) +
   geom_bar(stat="identity",position="dodge")
@@ -536,10 +540,14 @@ ans1 <- SK_dist[,ha]-casNocas
 
 # how many hectares that are disturbed according to LS in the comparison area and not modelled
 # because of lack of CASFRI?
-ha.target <- LSNOcasfri[,sum(ha)]
+ha.target <- LSNoCasInCompare[,sum(ha)]
+#802668.3
+# idem in the total CASFRI modelled area
+LSNOcasfri[,sum(ha)]
 #[1] 813266.5
 
 # What disturbances are in those hectares?
+LSNOComp.dist <- LSNOcasfri[,sum(ha), by=disturbance]
 LSNO.dist <- LSNOcasfri[,sum(ha), by=disturbance]
 g.LSNoCasfri <- ggplot(data=LSNOcasfri ,aes(x=year,y=ha,fill=disturbance,colour=disturbance)) +
   geom_bar(stat="identity",position="stack")
@@ -581,7 +589,56 @@ g.spatialPlus.harvest <- ggplot(data=spatial.plus[DB_Source!="Spatial" & Disturb
 ggsave(g.spatialPlus.harvest,file=paste(outfigs,file="ResolvingNoCASFRIdist/AllLandsatInCompHarvest.jpeg",sep=""))
 
 # graph differences
+# total
 diff.dist.tot <- spatial.plus[,.(tot.ha=sum(ha)),by=c("DB_Source","Year")]
 diff.tot <- diff.dist.tot[DB_Source=="Reporting",.(tot.ha)] - diff.dist.tot[DB_Source=="Spatial",.(tot.ha)]
-## HERE
-diff.harvest <- diff.dist.tot[DB_Source=="Reporting"& Disturbance=="harvest",.(tot.ha)] - diff.dist.tot[DB_Source=="Spatial" & Disturbance=="harvest",.(tot.ha)]
+diffP.tot <- diff.dist.tot[DB_Source=="Reporting",.(tot.ha)] - diff.dist.tot[DB_Source=="Spatial+",.(tot.ha)]
+Year <-  c(rep(1990:2011,2))
+diffTOT <- rbind(diff.tot,diffP.tot)
+added <- c(rep("NO",22),rep("YES",22))
+bothTOT <- cbind(added,Year,diffTOT)
+g.diff <- ggplot(data=bothTOT,aes(x=Year,y=tot.ha/1000000,group=added,colour=added)) +
+  geom_line(size=1)+ylab("Mha")
+ggsave(g.diff,file=paste(outfigs,"ResolvingNoCASFRIdist/AddLSextraTOT.jpeg",sep=""))
+# what % if that? diff/NIR
+NIR.dist.tot <- spatial.plus[,.(tot.ha=sum(ha)),by="DB_Source"]
+NIRperc1 <- NIR.dist.tot[DB_Source=="Spatial",.(tot.ha)]/NIR.dist.tot[DB_Source=="Reporting",.(tot.ha)]
+NIRperc2 <- NIR.dist.tot[DB_Source=="Spatial+",.(tot.ha)]/NIR.dist.tot[DB_Source=="Reporting",.(tot.ha)]
+# harvest
+harvest.NIR <- spatial.plus[DB_Source=="Reporting"& Disturbance=="harvest",.(harvest.ha = sum(ha)),by=c("DB_Source","Year")]
+harvest.spatial <- spatial.plus[DB_Source=="Spatial"& Disturbance=="harvest",.(harvest.ha = sum(ha)),by=c("DB_Source","Year")]
+harvest.spatialP <- spatial.plus[DB_Source=="Spatial+"& Disturbance=="harvest",.(harvest.ha = sum(ha)),by=c("DB_Source","Year")]
+diff.harv <- harvest.NIR$harvest.ha - harvest.spatial$harvest.ha
+diff.harvP <- harvest.NIR$harvest.ha - harvest.spatialP$harvest.ha
+tot.ha <-as.numeric(c(diff.harv,diff.harvP))
+added <- c(rep("Harv",22),rep("Harv+",22))
+harv.diff <- as.data.table(cbind(added,Year,tot.ha))
+g.diff.harv <- ggplot(data=harv.diff,aes(x=Year,y=as.numeric(tot.ha)/1000000,group=added,colour=added)) +
+  geom_line(size=1) +ylab("Mha")
+ggsave(g.diff.harv,file=paste(outfigs,"ResolvingNoCASFRIdist/AddLSextraHARVEST.jpeg",sep=""))
+# what %
+harvPerc1 <- harvest.spatial[,sum(harvest.ha)]/harvest.NIR[,sum(harvest.ha)]
+harvPerc2 <- harvest.spatialP[,sum(harvest.ha)]/harvest.NIR[,sum(harvest.ha)]
+
+# fire
+fire.NIR <- spatial.plus[DB_Source=="Reporting"& Disturbance=="fire",.(fire.ha = sum(ha)),by=c("DB_Source","Year")]
+fire.spatial <- spatial.plus[DB_Source=="Spatial"& Disturbance=="fire",.(fire.ha = sum(ha)),by=c("DB_Source","Year")]
+fire.spatialP <- spatial.plus[DB_Source=="Spatial+"& Disturbance=="fire",.(fire.ha = sum(ha)),by=c("DB_Source","Year")]
+diff.fire <- fire.NIR$fire.ha - fire.spatial$fire.ha
+diff.fireP <- fire.NIR$fire.ha - fire.spatialP$fire.ha
+tot.ha <-as.numeric(c(diff.fire,diff.fireP))
+added <- c(rep("fire",22),rep("fire+",22))
+fire.diff <- as.data.table(cbind(added,Year,tot.ha))
+g.diff.fire <- ggplot(data=fire.diff,aes(x=Year,y=as.numeric(tot.ha)/1000000,group=added,colour=added)) +
+  geom_line(size=1)+ylab("Mha")
+ggsave(g.diff.fire,file=paste(outfigs,"ResolvingNoCASFRIdist/AddLSextraFIRE.jpeg",sep=""))
+# what %
+firePerc1 <- fire.spatial[,sum(fire.ha)]/fire.NIR[,sum(fire.ha)]
+firePerc2 <- fire.spatialP[,sum(fire.ha)]/fire.NIR[,sum(fire.ha)]
+
+#-------------------Unclassified and Lcondition areas
+# how much in LSproduct by dist?
+sK_distRaw <- SK_dist[,.(tot.ha=sum(ha)),by=disturbance]
+# how much do we model by dist?
+spatial.dist <- spatial.plus[,.(tot.ha = sum(ha)), by=c("DB_Source","Disturbance")]
+

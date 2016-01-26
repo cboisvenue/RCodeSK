@@ -84,20 +84,16 @@ fig5 <- ggplot(data=allABG.ha.yr,aes(YEAR,mean,group=Source,colour=Source, fill=
   geom_point() + geom_line() + geom_errorbar(aes(ymin=(mean)-1.96*(sd),ymax=(mean)+1.96*(sd)))+
   scale_colour_manual(values=c("black", "red"))
 
-
-g.psp84 <- ggplot(data=pspAvgAGB84,aes(YEAR,mean)) +
-  geom_point(aes(size=no.plot),colour="blue") +
-  geom_line(colour="blue") + 
-  geom_errorbar(aes(ymin=(mean)-1.96*(sd),ymax=(mean)+1.96*(sd)))
-g.psp84 + geom_point(data=raster.biom, aes(YEAR,mean),colour="red") + geom_line()
-  geom_errorbar(data=raster.biom, aes(ymin=mean-1.96*sd,ymax=mean+1.96*sd),colour="red")
 ## we see the same trends with all the "undisturbed pixels through time
+# need to figure out the number of pixels per year...
+no.pixels <- fread("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/growth/biomassHaEvaluation/cellValue_freq.txt",sep=",",header=TRUE)
 
+pix.yr <- colSums(no.pixels,)
+pix.yr %in% 623940100
+# total no of pixels per year is 623940100 which equals 56154609 ha
 
-
-
-
-
+623940100*0.09
+56154609
 
 
 

@@ -100,6 +100,7 @@ library(ggplot2)
 raster.biom <- fread("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/growth/biomassHaEvaluation/RasterAvg_SD.txt",sep="\t",header=TRUE)
 setnames(raster.biom,names(raster.biom),c("YEAR","mean","sd"))
 # add PSP info from Figure 4
+indir <- "M:/Spatially_explicit/01_Projects/07_SK_30m/Working/CBoisvenue/CleanedUpForUsing/"
 biom.ha.psp <- fread(paste(indir,"SK_2000Biomass_ha.txt",sep=""),sep=",", header=TRUE)
 pspAvgBiom.yr <- biom.ha.psp[,.(mean=mean(biom.ha),sd=sd(biom.ha),no.plot=.N),by=YEAR]
 pspAvgAGB84 <- pspAvgBiom.yr[YEAR>1983]
