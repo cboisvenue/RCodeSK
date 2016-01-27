@@ -20,7 +20,9 @@ load("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/biomass_spread/RFModel
 rf.mix1
 
 # PSP biomass per hectare values-----------------------------------------
-biom.ha.psp <- fread(paste(indir,"SK_2000Biomass_ha.txt",sep=""),sep=",", header=TRUE)
+## NOTES: the t_haBiom_yr.txt file is the one used for model fitting. Individual tree
+## increments were calculated and sumed over the plot
+biom.ha.psp <- fread(paste(indir,"t_haBiom_yr.txt",sep=""),sep=",", header=TRUE)#SK_2000Biomass_ha.txt
 # range(biom.ha.psp$biom.ha)
 # [1]   2.77457 464.03525
 # the above is not what I give in the manuscripts...
@@ -67,7 +69,7 @@ ggsave("C:/Celine/CelineSync/RES_Work/Work/JoanneWhite/SK_work/WritingBin/figure
 # END PSP info---------------------------------------------------------------
 
 
-#Redoing figure 5 to ensure we are looking at all the same pixels through time
+#Redoing figure 5 to ensure we are looking at all the same pixels through time ---------------------
 raster.biom <- fread("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/growth/biomassHaEvaluation/RasterAvg_SD.txt",sep="\t",header=TRUE)
 pixel.biom <- ggplot(raster.biom, aes(year,avg.biomMask)) + geom_point(colour="red") +
   geom_line(colour="red")+ ylab("Mg/ha") + 
@@ -87,13 +89,65 @@ fig5 <- ggplot(data=allABG.ha.yr,aes(YEAR,mean,group=Source,colour=Source, fill=
 ## we see the same trends with all the "undisturbed pixels through time
 # need to figure out the number of pixels per year...
 no.pixels <- fread("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/growth/biomassHaEvaluation/cellValue_freq.txt",sep=",",header=TRUE)
+# last row is a count of the NAs
+nopixels <- no.pixels[1:257]
+pix.yr <- colSums(nopixels,na.rm=TRUE)
+range(pix.yr[2:30])
+#[1] 14342960 14374940
+# 14374940-14342960
+#[1] 31980
+# 31980*0.09
+#[1] 2878.2
+mean(pix.yr[2:30])
+# [1] 14367666
+mean(pix.yr[2:30])*0.09
+#1293090 ha
+sd(pix.yr[2:30])
+#[1] 12566.45
+sd(pix.yr[2:30])*0.09
+#1130.98
+# End of Biomass/ha raster summary--------------------------------------------------------
 
-pix.yr <- colSums(no.pixels,)
-pix.yr %in% 623940100
-# total no of pixels per year is 623940100 which equals 56154609 ha
+# Checks on the lme model used -----------------------------------------------------------
+library(lme4)
+fit.data <- fread(paste(indir,"FittingData_BiomassPSPModel.txt",sep=""),sep=",",header=TRUE)
+modl <- lmer(formula= ly~stratum+l.age*stratum+age1+(1|PLOT_ID),data=fit.data,REML=FALSE)
 
-623940100*0.09
-56154609
+# load the model, it is names mem7
+#load(file = "M:/Spatially_explicit/01_Projects/07_SK_30m/Working/growth/MEM_t_haPSP/MEM_t_ha.Rdata")
+# save fitting data
+#fit.data <- fread(paste(indir,"FittingData_BiomassPSPModel.txt",sep=""),sep=",",header=TRUE)
+g.indata <- ggplot(data=fit.data,aes(x=age1,y=biom.ha.inc,group=stratum,colour=stratum)) +
+  geom_point()
+
+# Install latest version from CRAN
+install.packages("piecewiseSEM")
+library(piecewiseSEM)
+sem.model.fits(modl)
+r.squared.lme(modl)
+# Class   Family     Link  Marginal Conditional      AIC
+# 1 lmerMod gaussian identity 0.2767173   0.5131608 1778.642
+# Marginal represents the proportion of variance explained by fixed effects
+# conditional representa the proportion of the variance explained by the fixed and random effects
+
+# Cheking assumptions for our model:
+
+# this checks that there are no trends in the residuals
+error1 <- as.data.frame(cbind(c(1:1353),residuals(modl)))
+names(error1) = c("Index","Error")
+plot.er1 <- ggplot(data=error1, aes(Index,Error)) + geom_point(size=2) + 
+  geom_hline(aes(yintercept=0),size=1) 
+# this checks the assumption of normality, it plots the theoritical quantiles 
+# of a normal distribution (theoretical) compared to that of your random effects
+# quantile plots compare 2 data sets. In our case our random effects and a normal distribution
+error2 <- as.data.frame(ranef(modl)$PLOT_ID)
+names(error2) <- "Intercept"
+plot.er2 <- ggplot(data=error2,aes(sample=Intercept)) +stat_qq(shape=1) + 
+  geom_abline(intercept = mean(error2$Intercept), slope = sd(error2$Intercept), size=1) 
+
+
+
+
 
 
 

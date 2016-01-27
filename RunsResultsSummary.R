@@ -547,7 +547,7 @@ LSNOcasfri[,sum(ha)]
 #[1] 813266.5
 
 # What disturbances are in those hectares?
-LSNOComp.dist <- LSNOcasfri[,sum(ha), by=disturbance]
+LSNOComp.dist <- LSNoCasInCompare[,sum(ha), by=disturbance]
 LSNO.dist <- LSNOcasfri[,sum(ha), by=disturbance]
 g.LSNoCasfri <- ggplot(data=LSNOcasfri ,aes(x=year,y=ha,fill=disturbance,colour=disturbance)) +
   geom_bar(stat="identity",position="stack")
@@ -559,10 +559,10 @@ unique(ha.dist$Disturbance)
 #[1] "fire"          "mortality20"   "harvest"       "deforestation"
 
 comp.ha.dist.spatial <- ha.dist[DB_Source=="Spatial"]
-Disturbance <- revalue(LSNOcasfri$disturbance,c("FireArea"="fire","HarvestArea"="harvest",
+Disturbance <- revalue(LSNoCasInCompare$disturbance,c("FireArea"="fire","HarvestArea"="harvest",
                                                "LcondArea"="mortality20","RoadArea"="deforestation",
                                                "UnclassArea"="mortality20"))
-LS.add <- cbind(LSNOcasfri[,disturbance:= NULL],Disturbance)
+LS.add <- cbind(LSNoCasInCompare[,disturbance:= NULL],Disturbance)
 LS.add <- LS.add[year>1989]
 setnames(LS.add,names(LS.add),c("Year","ha","Disturbance"))
 
