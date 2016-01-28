@@ -22,8 +22,8 @@ rf.mix1
 # PSP biomass per hectare values-----------------------------------------
 ## NOTES: the t_haBiom_yr.txt file is the one used for model fitting. Individual tree
 ## increments were calculated and sumed over the plot
-biom.ha.psp <- fread(paste(indir,"t_haBiom_yr.txt",sep=""),sep=",", header=TRUE)#SK_2000Biomass_ha.txt
-# range(biom.ha.psp$biom.ha)
+biom.ha.psp <- fread(paste(indir,"SK_2000Biomass_ha.txt",sep=""),sep=",", header=TRUE)
+range(biom.ha.psp$biom.ha)
 # [1]   2.77457 464.03525
 # the above is not what I give in the manuscripts...
 
@@ -57,15 +57,17 @@ rf.input <- fread("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/biomass_s
 # PSP no of measurement per species info----------------------------------
 #count the number of measurement per species
 # Figure 3
-psp.tree <- fread(paste(indir,"SK_2000TreeMeasurements.csv",sep=""),sep=",",header=TRUE)
-no.meas.psp <- psp.tree[,.(count = .N),by=dom]
-# better plot with a table
-g <- ggplot(data=psp.tree) + geom_bar(aes(round(age), fill=SPECIES),colour="black") +
-  xlab("Plot age") + ylab("Number tree-level measurements") 
-#ggtitle("Measured Trees by Age and Species - SK 418") + 
-#theme(plot.title = element_text(lineheight=1.2, face="bold"))
-g+annotation_custom(tableGrob(no.meas.psp),xmin=175, xmax=225,ymin=14000,ymax=75000) 
-ggsave("C:/Celine/CelineSync/RES_Work/Work/JoanneWhite/SK_work/WritingBin/figures/SK2000_TreeMeasAgeSps.jpeg")
+# NOT SURE WHY THIS IS NOT WORKING TODAY...IT WORKED YESTERDAY
+# psp.tree <- fread(paste(indir,"SK_2000TreeMeasurements.csv",sep=""),sep=",",header=TRUE)
+# no.meas.psp <- psp.tree[,.(count = .N),by=dom]
+# # better plot with a table
+# library(gridExtra)
+# g <- ggplot(data=psp.tree) + geom_bar(aes(round(age), fill=SPECIES),colour="black") +
+#   xlab("Plot age") + ylab("Number tree-level measurements") 
+# #ggtitle("Measured Trees by Age and Species - SK 418") + 
+# #theme(plot.title = element_text(lineheight=1.2, face="bold"))
+# g+annotation_custom(tableGrob(no.meas.psp),xmin=175, xmax=225,ymin=14000,ymax=75000) 
+# ggsave("C:/Celine/CelineSync/RES_Work/Work/JoanneWhite/SK_work/WritingBin/figures/SK2000_TreeMeasAgeSps.jpeg")
 # END PSP info---------------------------------------------------------------
 
 
@@ -121,17 +123,16 @@ g.indata <- ggplot(data=fit.data,aes(x=age1,y=biom.ha.inc,group=stratum,colour=s
   geom_point()
 
 # Install latest version from CRAN
-install.packages("piecewiseSEM")
+#install.packages("piecewiseSEM")
 library(piecewiseSEM)
 sem.model.fits(modl)
-r.squared.lme(modl)
 # Class   Family     Link  Marginal Conditional      AIC
 # 1 lmerMod gaussian identity 0.2767173   0.5131608 1778.642
 # Marginal represents the proportion of variance explained by fixed effects
 # conditional representa the proportion of the variance explained by the fixed and random effects
 
 # Cheking assumptions for our model:
-
+# Figure 6-------------------------------------------------------------------------
 # this checks that there are no trends in the residuals
 error1 <- as.data.frame(cbind(c(1:1353),residuals(modl)))
 names(error1) = c("Index","Error")
@@ -144,9 +145,68 @@ error2 <- as.data.frame(ranef(modl)$PLOT_ID)
 names(error2) <- "Intercept"
 plot.er2 <- ggplot(data=error2,aes(sample=Intercept)) +stat_qq(shape=1) + 
   geom_abline(intercept = mean(error2$Intercept), slope = sd(error2$Intercept), size=1) 
+# END Figure 6--------------------------------------------------------------------
+
+# DROPPED OLD Figure 7 --------------------------------------------------------------------
+# load("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/Cboisvenue/CleanedUpForUsing/MEM_RS_OneSample.RData")
+# sem.model.fits(memPA.s1)
+# # cannot fit get the above evaluation b/c I need memory then my local machine has...
+# error1 <- as.data.frame(cbind(c(1:280000),residuals(memPA.s1)))
+# names(error1) = c("Index","Error")
+# plot.pixeler1 <- ggplot(data=error1, aes(Index,Error)) + geom_point(size=2) +
+#   geom_hline(aes(yintercept=0),size=1)
+# error2 <- as.data.frame(ranef(memPA.s1)$RasterID)
+# names(error2) <- "Intercept"
+# plot.pixeler2 <- ggplot(data=error2,aes(sample=Intercept)) +stat_qq(shape=1) + 
+#   geom_abline(intercept = mean(error2$Intercept), slope = sd(error2$Intercept), size=1)  
+
+# New Figure 7: biomass change from field plots fitted curves------------------------
+AIC(modl)#[1] 1778.642
+# look at the curves
+plot.age <- rep(1:250) #this is my x-axis
+l.age <-log(plot.age) # in the right transmormation
+topredMM <- as.data.frame(cbind(plot.age,l.age)) # put them together
+#names(topredMM) = c("age1","l.age") # name them the same this as in the fitting data
+stratum <- sort(rep(c("BF","BP","BSG","BSM","JP","TAG","TAM","WB","WSG"),250)) # same number of 
+# strata as in the fit.data
+topredMM <- cbind(stratum,topredMM)
+names(topredMM) = c("stratum","age1","l.age") # name them the same this as in the fitting data
+NoWSMlhat2 <- predict(modl,newdata=topredMM)
+NoWSMhat2 <- exp(NoWSMlhat2)
+NoWSMpred2 <- cbind(topredMM,NoWSMhat2,NoWSMlhat2)
+fig7 <- ggplot(data=NoWSMpred2,aes(x=age1,y=NoWSMhat2,group=stratum,colour=stratum,linetype=stratum)) + 
+  geom_line(size=1) + xlab("Age") + ylab("MgC/ha") + theme(legend.position=c(0.9,0.62))
+fig7
+ggsave(fig7, file="C:/Celine/GitHub/RCodeSK/figures/fig7_v1.jpeg")
+#---------END Fig7-----------------------------------------------------------------
+
+# Building a bunch of curves from the parameter value range for JP in the pixel-based fit
+# this is the model
+#load("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/Cboisvenue/CleanedUpForUsing/MEM_RS_OneSample.RData")
+g.JPpsp <- ggplot(data=NoWSMpred2[stratum=="JP",],aes(x=age1,y=NoWSMhat2)) + 
+  geom_line(size=1) + xlab("Age") + ylab("MgC/ha") 
+g.JPpsp
+
+# these are the names of the variables in the memPA.s1
+#c("age","logAge","l.dbiom","strata","RasterID")
+strata <- rep("JP",250)
+RScurveJP.in <- as.data.frame(cbind(plot.age,l.age,strata))
+names(RScurveJP.in) <- c("age","logAge","strataPSP")
+lhat.JPRS <- predict(memPA.s1,newdata=RScurveJP.in)
 
 
-
+psp <- fread(paste(indir,"BiomModelParamsCI.txt",sep=""),sep=",",header=TRUE) # psp params
+pspJP <- psp[stratum=="JP"|stratum=="ALL"][,.(b,value)]
+lJP.psp <- pspJP[b=="b0",value]+pspJP[b=="b1",value]*plot.age+pspJP[b=="b2",value]*l.age
+JP.psp <- exp(lJP.psp)
+#setkey(psp,stratum,b)
+rs <-  fread(paste(indir,"DeltaBiomRsParams.txt",sep=""),sep=",",header=TRUE)
+#setkey(rs,stratum,b)
+b0.modes <- read.table(file=paste(indir,"b0RSmodes.txt",sep=""),sep=",",header=TRUE)
+b1.modes <- read.table(file=paste(indir,"b1RSmodes.txt",sep=""),sep=",",header=TRUE)
+b2.modes <- read.table(file=paste(indir,"b2RSmodes.txt",sep=""),sep=",",header=TRUE)
+#stratum <- "ALL"
+b2.mode <- as.data.frame(cbind(stratum,b2.modes))
 
 
 
