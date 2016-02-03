@@ -19,7 +19,8 @@ require(plyr)
 require(dplyr)
 library(tidyr)
 
-setwd("C:/Celine/CelineSync/RES_Work/Work/JoanneWhite/SK_work/data/CleanedUpForUsing/")
+setwd("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/CBoisvenue/CleanedUpForUsing/")
+#setwd("C:/Celine/CelineSync/RES_Work/Work/JoanneWhite/SK_work/data/CleanedUpForUsing/")
 
 # read-in base file---------------------------------------------
 #t/ha or Mg/ha (those are equivalent)
@@ -29,7 +30,7 @@ casfri <- read.table("C:/Celine/CelineSync/RES_Work/Work/JoanneWhite/SK_work/dat
 soil <- select(casfri, PLOT_ID=plot_id, soil_moist_reg) 
 soil$soil_moist_reg <- revalue(soil$soil_moist_reg,c("-1111" = "M","A"="P","D"="M","F"="G","M"="G","W"="M"))
 soil$soil_moist_reg[which(is.na(soil$soil_moist_reg))] <- "M"
-tree.meas <- read.table("C:/Celine/CelineSync/RES_Work/Work/JoanneWhite/SK_work/data/CleanedUpForUsing/SK_2000TreeMEasurements.csv",sep=",", header=TRUE)
+tree.meas <- read.table("SK_2000TreeMEasurements.csv",sep=",", header=TRUE)#C:/Celine/CelineSync/RES_Work/Work/JoanneWhite/SK_work/data/CleanedUpForUsing/
 dom.sps <-group_by(tree.meas,PLOT_ID) %>%
   summarise(dom=first(SPECIES))
 # there are not enough plots with leaving TL so they ae lumped-in with the BF
@@ -59,7 +60,7 @@ age.plot <- group_by(tree.meas,PLOT_ID,YEAR) %>%
 check1 <- inner_join(plot.biom,age.plot)
 plot.check <- ggplot(data=check1, aes(x=age,y=biom.ha)) + geom_point()
 plot.check + ggtitle("Plot-level biomass per hectare estiamtes t/ha")
-ggsave(plot.check,file="G:/RES_Work/Work/JoanneWhite/SK_work/GrowthRaster/Results/BiomassHaModelAssessment/PlotBiomass_t_ha.jpeg")
+#ggsave(plot.check,file="G:/RES_Work/Work/JoanneWhite/SK_work/GrowthRaster/Results/BiomassHaModelAssessment/PlotBiomass_t_ha.jpeg")
 ### These estimates seem really high.....
 
 # End of reading-in files---------------------------------------

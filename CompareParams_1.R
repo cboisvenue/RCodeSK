@@ -51,7 +51,7 @@ b1.plot <- ggplot(data=b1psp, aes(y=value,x=stratum)) +
   theme(legend.position="none") +
   ggtitle("Slope for logAge comparison, RS and PSP") +
   theme(plot.title=element_text(face="bold",size=20))
-ggsave(b1.plot, file="G:/RES_Work/Work/JoanneWhite/SK_work/GrowthRaster/Results/ParamCompare/b1.jpeg")
+#ggsave(b1.plot, file="G:/RES_Work/Work/JoanneWhite/SK_work/GrowthRaster/Results/ParamCompare/b1.jpeg")
 # End logAge slope graphical comparison----
 
 # graphically compare Age slopes
@@ -64,7 +64,7 @@ b2.plot <- ggplot(data=b2psp, aes(y=value,x=stratum)) +
   theme(legend.position="none") +
   ggtitle("Slope for logAge comparison, RS and PSP") +
   theme(plot.title=element_text(face="bold",size=20))
-ggsave(b2.plot, file="G:/RES_Work/Work/JoanneWhite/SK_work/GrowthRaster/Results/ParamCompare/b2.jpeg")
+#ggsave(b2.plot, file="G:/RES_Work/Work/JoanneWhite/SK_work/GrowthRaster/Results/ParamCompare/b2.jpeg")
 # End Age slope graphical comparison----
 
 # Are samples consistent?

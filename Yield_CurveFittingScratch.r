@@ -111,7 +111,12 @@ names(topredMM) = c("plot.age","l.age","age.s","l.age.s")
 stratum <- as.factor(sort(rep(as.character(levels(yield.data$stratum)),250)))
 topredMM <- cbind(stratum,topredMM)
 lyhat2 <- predict(lylme3,newdata=topredMM)
+
+# This is the model used so the PSP GrowthCurves used in CBM simulations###
 ltotvolhat <-predict(ltotvollme,newdata=topredMM)
+##########################################################
+#########################################################
+
 predMM <- cbind(topredMM,lyhat2)
 totvolpredMM <- cbind(topredMM,ltotvolhat)
 predMM <- mutate(predMM,yhat2 = exp(lyhat2)) 
@@ -124,6 +129,7 @@ ggsave("plotYieldCurvesMEModelPSP.jpeg")
 MEMpspVol <- ggplot(data=totvolpredMM,aes(x=plot.age,y=totvolhat,group=stratum,colour=stratum)) + geom_line(size=1.5)
 MEMpspVol + ggtitle("Predicting total m3/ha by Strata") +  scale_fill_brewer(palette="Spectral")
 ggsave("plotGrowthCurvesMEModelPSP.jpeg")
+#####################################################
 
 # volumeYield <- lapply(predMM$yhat2,cumsum) 
 # %>%
@@ -387,9 +393,9 @@ plot10 <- sample(dataT3$PLOT_ID,9)
 PLOT_ID <- sort(rep(plot10,250))
 
 topredMM <- cbind(PLOT_ID,stratum,topredMM)
-# memT.lyhat <- predict(memT,newdata=topredMM)
-# predMM <- cbind(topredMM,memT.lyhat)
-# predMM <- mutate(predMM,memT.yhat = exp(memT.lyhat)) 
+memT.lyhat <- predict(memT,newdata=topredMM)
+predMM <- cbind(topredMM,memT.lyhat)
+predMM <- mutate(predMM,memT.yhat = exp(memT.lyhat)) 
 
 # no TAG
 # noTAGMM <- filter(topredMM,stratum!="TAG")

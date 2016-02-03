@@ -23,7 +23,7 @@ names(error2) <- "Intercept"
 plot.er2 <- ggplot(data=error2,aes(sample=Intercept)) +stat_qq(shape=1) +theme(text = element_text(size=20))
 
 
-# Multiple plot function
+# Multiple plot functions
 #
 # ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
 # - cols:   Number of columns in layout

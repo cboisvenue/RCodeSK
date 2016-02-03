@@ -6,91 +6,113 @@ output: word_document
 \newpage
 
 ## Figure 1. Our study areas: the managed forests of Saskatchewan and the Prince Albert Forest Management Area.
-![](figures/Figure1_try1.JPG)
+![](figures/fig1_v2.jpg)
 
 
 \newpage
 
 ## Figure 2. Analyses inputs and flow.
-![](figures/CB_figure2_v2.jpeg)
+![](figures/fig2.jpeg)
 
 \newpage
 
 ## Figure 3. Tree-level measurements over plot age, by species for plots used for biomass prediction.
-![](figures/SK418_TreeMeasAgeSps.JPG)
-
 
 [//]: (there is a jpeg of this file...but I am trying the embedded code avenue SK418_TreeMeasAgeSps.jpeg)
 
-[//]: (I can't get this code to work, the table is funky...)
-```{r echo=FALSE, eval=FALSE}
-  require(plyr)
-  require(ggplot2)
-  require(dplyr)
-  require(reshape2)
-  library(gridExtra)  
-
-  sk.tree <- read.table("C:/Celine/CelineSync/RES_Work/Work/JoanneWhite/SK_work/data/SK_418PlotsCleaned1.txt",sep=",")
-skTree_byAge <- select(sk.tree,PLOT_ID,TREE_NO,SPECIES,agecombo) %>%
-  mutate(age=round(agecombo)) %>%
-  select(PLOT_ID,TREE_NO,SPECIES,age)
-meas_sps <- group_by(skTree_byAge,SPECIES) %>%
-  summarize(n())
-g <- ggplot(data=skTree_byAge) + geom_bar(aes(age, fill=SPECIES),colour="black") +
+```{r echo=FALSE, eval=TRUE,message=FALSE,warning=FALSE,fig.width=8, fig.height=5}
+  library(data.table)
+  library(ggplot2)
+  library(gridExtra)
+psp.tree <- fread("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/CBoisvenue/CleanedUpForUsing/SK_2000TreeMeasurements.csv",sep=",",header=TRUE)
+no.meas.psp <- psp.tree[,.(count = .N),by=dom]
+# better plot with a table
+g <- ggplot(data=psp.tree) + geom_bar(aes(round(age), fill=SPECIES),colour="black") +
   xlab("Plot age") + ylab("Number tree-level measurements") 
-  g+annotation_custom(tableGrob(meas_sps,cex=0.5),xmin=200, xmax=250,ymin=10000,ymax=15000) )
+#ggtitle("Measured Trees by Age and Species - SK 418") + 
+#theme(plot.title = element_text(lineheight=1.2, face="bold"))
+g+annotation_custom(tableGrob(no.meas.psp),xmin=175, xmax=225,ymin=14000,ymax=75000) 
 ```
 
 \newpage
 
-## Figure 4. Number of plots measured in each measurement year.
-```{r echo=FALSE, message=FALSE}
+## Figure 4. Average (red dot) and measurement range (wings) of biomass measured in permanent sample plots  in each year that field data were collected. The size of the red dot indicates the total number of plots measured in each year.
+```{r echo=FALSE, message=FALSE,fig.width=8, fig.height=5}
 library(data.table)
-require(plyr)
-library(dplyr)
 library(ggplot2)
-
 indir = "M:/Spatially_explicit/01_Projects/07_SK_30m/Working/CBoisvenue/CleanedUpForUsing/"
-pspBiomInc <- read.table(paste(indir,"t_haBiom_yr.txt",sep=""),header=TRUE,sep=",")
-tree.biom <- read.table(paste(indir,"SK_2000TreeBiomass.csv",sep=""),sep=",",header=TRUE)
-mem.fit <- read.table(paste(indir,"FittingData_BiomassPSPModel.txt",sep=""),sep=",",header=TRUE)
-strata <- as.data.table(unique(cbind(PLOT_ID=mem.fit$PLOT_ID,strata=mem.fit$stratum)))
+biom.ha.psp <- fread(paste(indir,"SK_2000Biomass_ha.txt",sep=""),sep=",", header=TRUE)
+# range(biom.ha.psp$biom.ha)
+# [1]   2.77457 464.03525
+# the above is not what I give in the manuscripts...
+
+#there are gaps in Figure 4, they were cheked and they are really gaps in the data
+# Repeating Fig.4 with the SK_2000Biomass_ha.txt, instead of the calculated ones I originally used
+pspAvgBiom.yr <- biom.ha.psp[,.(mean=mean(biom.ha),sd=sd(biom.ha),no.plot=.N),by=YEAR]
+fig4 <- ggplot(data=pspAvgBiom.yr,aes(YEAR,mean))
+fig4 + geom_point(aes(size=no.plot),colour="blue") + ylab("Mg/ha") + 
+  geom_errorbar(aes(ymin=(mean)-1.96*(sd),ymax=(mean)+1.96*(sd)))
+
+# not used anymore but gives same as above
+#library(data.table)
+#require(plyr)
+#library(dplyr)
+#library(ggplot2)
+
+#indir = "M:/Spatially_explicit/01_Projects/07_SK_30m/Working/CBoisvenue/CleanedUpForUsing/"
+# pspBiomInc <- read.table(paste(indir,"t_haBiom_yr.txt",sep=""),header=TRUE,sep=",")
+# tree.biom <- read.table(paste(indir,"SK_2000TreeBiomass.csv",sep=""),sep=",",header=TRUE)
+# mem.fit <- read.table(paste(indir,"FittingData_BiomassPSPModel.txt",sep=""),sep=",",header=TRUE)
+# strata <- as.data.table(unique(cbind(PLOT_ID=mem.fit$PLOT_ID,strata=mem.fit$stratum)))
 
 # the biomass here in in kg (checked in pub)
-tree.biom <- as.data.table(tree.biom)
+# tree.biom <- as.data.table(tree.biom)
 # sum per plot, yr, sps
-plot.biom <- tree.biom[,.(tot.biom = sum(biomass),dom = first(dom),age=round(mean(age))),by=.(PLOT_ID,YEAR,SPECIES)]
-# get plot sizes
-plotInfo <- read.table("C:/Celine/CelineSync/RES_Work/Work/JoanneWhite/SK_work/GrowthRaster/BiomassEstimation/measurement_header.csv",sep=",", header=TRUE)
-plotInfo <- as.data.table(plotInfo)
-plotSize <- plotInfo[,.(PLOT_ID,PLOT_SIZE)]
-plotSize <- unique(plotSize)
-# merge
-setkey(plot.biom,PLOT_ID)
-setkey(plotSize,PLOT_ID)
-setkey(strata,PLOT_ID)
-plot.biom.ha <- merge(plot.biom,plotSize)
-plot.biom.ha <- plot.biom.ha[,kg.ha := (tot.biom/PLOT_SIZE)]
-psp <- merge(plot.biom.ha,strata)
-# just by year
-by.year <- psp[,.(allSps.kg.ha=sum(kg.ha)),by=.(PLOT_ID,YEAR)]
-mean.year <- by.year[,.(mean=mean(allSps.kg.ha),sd=sd(allSps.kg.ha),no.plot=.N),by=YEAR]
-setkey(mean.year,YEAR)
-# plot
-pb <- ggplot(mean.year,aes(YEAR,mean/1000))
-pb + geom_point(aes(size=no.plot),colour="red") + ylab("Mg/ha") + 
-  geom_errorbar(aes(ymin=(mean/1000)-1.96*(sd/1000),ymax=(mean/1000)+1.96*(sd/1000)))
+# # plot.biom <- tree.biom[,.(tot.biom = sum(biomass),dom = first(dom),age=round(mean(age))),by=.(PLOT_ID,YEAR,SPECIES)]
+# # # get plot sizes
+# # plotInfo <- read.table("C:/Celine/CelineSync/RES_Work/Work/JoanneWhite/SK_work/GrowthRaster/BiomassEstimation/measurement_header.csv",sep=",", header=TRUE)
+# # plotInfo <- as.data.table(plotInfo)
+# # plotSize <- plotInfo[,.(PLOT_ID,PLOT_SIZE)]
+# # plotSize <- unique(plotSize)
+# # # merge
+# # setkey(plot.biom,PLOT_ID)
+# # setkey(plotSize,PLOT_ID)
+# # setkey(strata,PLOT_ID)
+# # plot.biom.ha <- merge(plot.biom,plotSize)
+# # plot.biom.ha <- plot.biom.ha[,kg.ha := (tot.biom/PLOT_SIZE)]
+# # psp <- merge(plot.biom.ha,strata)
+# # # just by year
+# # by.year <- psp[,.(allSps.kg.ha=sum(kg.ha)),by=.(PLOT_ID,YEAR)]
+# # mean.year <- by.year[,.(mean=mean(allSps.kg.ha),sd=sd(allSps.kg.ha),no.plot=.N),by=YEAR]
+# # setkey(mean.year,YEAR)
+# # # plot
+# # pb <- ggplot(mean.year,aes(YEAR,mean/1000))
+# pb + geom_point(aes(size=no.plot),colour="red") + ylab("Mg/ha") + 
+#   geom_errorbar(aes(ymin=(mean/1000)-1.96*(sd/1000),ymax=(mean/1000)+1.96*(sd/1000)))
 ```
 
 \newpage
 
-## Figure 5. Average yearly biomass across all pixels of the combined-data estimates for each year from 1984-2012.
-```{r echo=FALSE, message=FALSE}
-avg.biom3 <- read.table(file="M:/Spatially_explicit/01_Projects/07_SK_30m/Working/CBoisvenue/CleanedUpForUsing/RasterAvg_SD.txt",sep=",",header=TRUE)
+## Figure 5. Average yearly aboveground biomass across pixels (pink) for the pixel-based  estimates that remain undisturbed from 1984 to 2012 for each year, and from the field plots (blue).
+```{r echo=FALSE, message=FALSE,fig.width=8, fig.height=5}
+library(data.table)
 library(ggplot2)
-pixel.biom <- ggplot(avg.biom3, aes(year,avg.biom1))
-pixel.biom + geom_point(colour="red")+ ylab("Mg/ha") + 
-  geom_errorbar(aes(ymin=avg.biom1-1.96*sd.biom1,ymax=avg.biom1+1.96*sd.biom1))
+raster.biom <- fread("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/growth/biomassHaEvaluation/RasterAvg_SD.txt",sep="\t",header=TRUE)
+setnames(raster.biom,names(raster.biom),c("YEAR","mean","sd"))
+# add PSP info from Figure 4
+indir <- "M:/Spatially_explicit/01_Projects/07_SK_30m/Working/CBoisvenue/CleanedUpForUsing/"
+biom.ha.psp <- fread(paste(indir,"SK_2000Biomass_ha.txt",sep=""),sep=",", header=TRUE)
+pspAvgBiom.yr <- biom.ha.psp[,.(mean=mean(biom.ha),sd=sd(biom.ha),no.plot=.N),by=YEAR]
+pspAvgAGB84 <- pspAvgBiom.yr[YEAR>1983]
+pspAvgAGB84 <- pspAvgAGB84[,no.plot := NULL]
+allABG.ha.yr <- rbind(raster.biom,pspAvgAGB84)
+Source <- c(rep("pixel",dim(raster.biom)[1]),rep("PSP",dim(pspAvgAGB84)[1]))
+allABG.ha.yr <- cbind(allABG.ha.yr,Source)
+
+fig5 <- ggplot(data=allABG.ha.yr,aes(YEAR,mean,group=Source,colour=Source, fill=Source)) + 
+  geom_point() + geom_line() + geom_errorbar(aes(ymin=(mean)-1.96*(sd),ymax=(mean)+1.96*(sd)))+
+  scale_colour_manual(values=c("black", "red"))
+fig5
 ```
 
 \newpage
@@ -240,7 +262,7 @@ ci.plot
 
 \newpage
 
-## Figure 9. Parameter comparison between parameters fit with the same methods on the same model form but with two different data sets, one with only field plots information and with with compbined field and remote sensing data. The first panel is for the intercept, and the second for the first slope.
+## Figure 9. Parameter comparison between parameters fit with the same methods on the same model form but with two different data sets, one with only field plots information and one with combined field and remote sensing data. The first panel is for the intercept, and the second for the slopes.
 ```{r echo=FALSE,message=FALSE,warning=FALSE}
 library(data.table)
 library(ggplot2)
@@ -253,6 +275,12 @@ psp <- fread(paste(data.in,"BiomModelParamsCI.txt",sep=""),sep=",",header=TRUE)
 setkey(psp,stratum,b)
 rs <-  fread(paste(data.in,"DeltaBiomRsParams.txt",sep=""),sep=",",header=TRUE)
 setkey(rs,stratum,b)
+b0.modes <- read.table(file=paste(data.in,"b0RSmodes.txt",sep=""),sep=",",header=TRUE)
+b1.modes <- read.table(file=paste(data.in,"b1RSmodes.txt",sep=""),sep=",",header=TRUE)
+b2.modes <- read.table(file=paste(data.in,"b2RSmodes.txt",sep=""),sep=",",header=TRUE)
+stratum <- "ALL"
+b2.mode <- as.data.frame(cbind(stratum,b2.modes))
+
 # End of reading in data -------------------------
 
 # Compare one parameter type at a time
@@ -267,8 +295,22 @@ b0.plot <- ggplot(data=b0psp, aes(y=value,x=stratum)) +
   geom_errorbar(aes(ymin=lower.b,ymax=upper.b), width=.2,colour="purple") + geom_point(colour="purple") +
   geom_boxplot(data=b0rs,aes(x=stratum,y=value,alpha=0.2)) +
   theme(legend.position="none") +
-  ggtitle("Intercept values comparison, RS and PSP") +
-  theme(plot.title=element_text(face="bold",size=20))
+  #ggtitle("Intercept values comparison, RS and PSP") +
+  theme(plot.title=element_text(face="bold",size=20)) + theme_gray() 
+  
+b0.plot + geom_point(data=b0.modes,aes(x=stratum,y=mode,colour="red", size=2)) +theme(legend.position="none")
 
+# second graph
+b1psp <- psp[b=="b1" | b=="b2"]
+b1rs <- rs[b=="b1" | b=="b2"]
+
+b1.plot <- ggplot(data=b1psp, aes(y=value,x=stratum)) + 
+  geom_errorbar(aes(ymin=lower.b,ymax=upper.b), width=.2,colour="purple") + geom_point(colour="purple") +
+  geom_boxplot(data=b1rs,aes(x=stratum,y=value,alpha=0.2)) +
+# theme(legend.position="none") +
+#  ggtitle("Slope for logAge comparison, RS and PSP") +
+  theme(plot.title=element_text(face="bold",size=20)) + theme_gray()
+b1.plot2 <- b1.plot + geom_point(data=b1.modes,aes(x=stratum,y=mode,colour="red", size=2))+ theme(legend.position="none")
+b1.plot2 + geom_point(data=b2.mode,aes(x=stratum,y=mode,colour="red", size=2))+ theme(legend.position="none")
 ```
 

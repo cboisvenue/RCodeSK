@@ -128,4 +128,7 @@ growth.table.out <-left_join(strata.def,growth.table.out)
 
 write.table(growth.table.out,file="GrowthTables_PSP_forCBM.txt",row.names=FALSE,sep=",")
 
+# trying to figure out what was giving to Byron for the spatial simulations
 
+ggplot(data=noTAGMM,aes(x=plot.age,y=memT.notagyhat,group=stratum,colour=stratum)) +
+  geom_line(size=1)
