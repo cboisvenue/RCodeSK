@@ -51,7 +51,7 @@ setnames(dt.all,names(dt.all),c("age","logAge","l.dbiom","strata","RasterID"))
 
 # read-in correspondence between PSP and PA
 strata.both <- fread("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/CBoisvenue/CleanedUpForUsing/StrataCorrespondencePSP_PA.csv",sep=",",header=TRUE)
-setnames(strata.both,names(strata.both),c("strata","strataPSP"))
+setn
 
 # read-in PSP data and calculate a proportion for each strata
 biom.data <- read.table("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/CBoisvenue/CleanedUpForUsing/t_haBiom_yr.txt",sep=",",header=TRUE)

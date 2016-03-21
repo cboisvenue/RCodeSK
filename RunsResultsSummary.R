@@ -54,7 +54,7 @@ ggsave(g1, file=paste(outfigs,"Figure4_AgeClassDist.jpeg",sep=""))
 # disturbances per year  ----------------------------
 distsums <- fread(paste(indir,"ToolboxResults/AllCASFRI_tb_AllDisturbance.csv",sep=""),sep=",",header=TRUE)
 names(distsums)
-setnames(distsums,names(distsums),c("timestep","fire","harvest","deforestation","mortality 20%"))
+setnames(distsums,names(distsums),c("timestep","fire","harvest","roads","mortality 20%"))
 dist.yr <- melt(distsums, id.vars = c("timestep"),
                 variable.name = "disturbance", value.name = "ha")
 
@@ -63,9 +63,16 @@ dist.yr <- cbind(year,dist.yr)
 # get rid of 1984 and 2012 b/c of 0 hectares disturbed
 dist.yr <- dist.yr[ha>0]
 
+# total #ha disturbed
+each.dist <- dist.yr[,.(sum(ha)),by=disturbance]
+sumdist <- sum(dist.yr$ha)
+each.dist$V1/sumdist
+
+
 g2 <- ggplot(data=dist.yr,aes(x=year,y=ha/1000000,group=disturbance,fill=disturbance)) + 
-  geom_bar(stat="identity") + ylab("Mha") + theme(legend.position=c(0.1,0.65))
-ggsave(g2,file=paste(outfigs,"Figure5_haDistyr.jpeg",sep=""))
+  geom_bar(stat="identity") + ylab("Mha") + theme(legend.position=c(0.1,0.65)) +
+  scale_fill_manual(values=c("red","black","#E69F00", "#56B4E9"))
+ggsave(g2,file=paste(outfigs,"Figure3_haDistyr.jpeg",sep=""))
 # end dist per year---------------------------------
 
 # dom species ha ---------------------------------------
@@ -209,9 +216,12 @@ fluxes[,Rh := (NPP-NEP)]
 fluxes2 <- melt(fluxes,id.vars = c("year","timestep"),
                 variable.name = "flux", value.name = "MgC")
 
-g.fluxes <- ggplot(data=fluxes2,aes(x=year,y=MgC,group=flux,colour=flux)) + 
-  geom_line(size=1.2) + geom_hline() +theme(legend.position=c(0.85,0.65))
-ggsave(g.fluxes,file=paste(outfigs,"Figure8_fluxesTotal.jpeg",sep=""))
+g.fluxes <- ggplot(data=fluxes2,aes(x=year,y=MgC/1000000,group=flux,colour=flux)) + 
+  ylab("TgC") +
+  geom_line(size=1.2) + geom_hline(yintercept=0, size=1) +theme(legend.position=c(0.85,0.65)) +
+  geom_text(aes(label="Source",x=1987,y=-1),size=7, colour="black") +
+  geom_text(aes(label="Sink",x=1986.5,y=1),size=7, colour="black") 
+ggsave(g.fluxes,file=paste(outfigs,"Figure6_fluxesTotal.jpeg",sep=""))
 # End fluxes-------------------------
 
 
@@ -233,7 +243,7 @@ defor <-fread(paste(indir,"ToolboxResults/AllCASFRI_tb_DeforestationEmissionsByS
 both <-rbind(fire, defor)
 both <- both[`Total CH4`>0]
 
-dist <- c(rep("fire",27),rep("deforestation",27))#rep("harvest",27),
+dist <- c(rep("fire",27),rep("roads",27))#rep("harvest",27),
 year <- rep(1985:2011,2)
 dist.em <- cbind(year,both[,TimeStep :=NULL],dist)
 #setnames(dist.em,names(dist.em), c("year","Total CO2","Total CO","Total CH4","dist"))
@@ -282,8 +292,8 @@ dist.tot2 <- rbind(add.tot,dist.tot)
 # ggsave(file=paste(outfigs,"Figure9_DistEmissions.jpeg",sep=""))  
 g.emissions.tot2 <- ggplot(data=dist.tot2,aes(x=year,y=dist.tot/1000000,fill=dist,group=dist,colour=dist,linetype=dist)) +
   geom_line(size=1.2) + theme(legend.position=c(0.9,0.62)) + ylab("TgC") +
-  scale_colour_manual(values = c("#56B4E9","#E69F00","black"))
-ggsave(file=paste(outfigs,"Figure9_DistEmissions.jpeg",sep=""))    
+  scale_colour_manual(values = c("#E69F00","#56B4E9","black"))
+ggsave(file=paste(outfigs,"Figure7_DistEmissions.jpeg",sep=""))    
 
 # NIR Comparison-------------------------------------------------------------------------
 #---------------------------------------------------------------------------------------------------
@@ -350,15 +360,19 @@ comp.flux.ha <- melt(compare.flux.ha,id.vars = c("DB_Source","SimYear"),variable
 setnames(comp.flux.tot,names(comp.flux.tot),c("Simulation","Year","flux","MgC"))
 setnames(comp.flux.ha,names(comp.flux.ha),c("Simulation","Year","flux","MgC/ha"))
 library(plyr)
-comp.flux.tot$Simulation <- revalue(x = comp.flux.tot$Simulation,c("SK_NIR"="Reporting","SK_Recliner"="Spatial"))
-comp.flux.ha$Simulation <- revalue(x = comp.flux.ha$Simulation,c("SK_NIR"="Reporting","SK_Recliner"="Spatial"))
+comp.flux.tot$Simulation <- revalue(x = comp.flux.tot$Simulation,c("SK_NIR"="Referenced","SK_Recliner"="Spatially-Explicit"))
+comp.flux.ha$Simulation <- revalue(x = comp.flux.ha$Simulation,c("SK_NIR"="Referenced","SK_Recliner"="Spatial-Explicit"))
 
-g.comp.flux.tot <- ggplot(data=comp.flux.tot,aes(x=Year,y=MgC,group=interaction(Simulation,flux),
+g.comp.flux.tot <- ggplot(data=comp.flux.tot[Year>1989 & Year<2013],aes(x=Year,y=MgC/1000000,group=interaction(Simulation,flux),
+                                                 linetype=Simulation,
                                          colour=interaction(Simulation,flux))) + 
-  geom_line(size=1.2) + geom_hline() + ylab("MgC") +
+  geom_line(size=1.2) + geom_hline(yintercept=0, size=1) + ylab("TgC") +
+  geom_text(aes(label="Source",x=1990.5,y=-1.5),size=7, colour="black") +
+  geom_text(aes(label="Sink",x=1990,y=3),size=7, colour="black") +
   scale_colour_manual(values=cbPalette)
 
-ggsave(g.comp.flux.tot,filename = paste(outfigs,"Figure10_CompareFluxesTOTALS.jpeg",sep=""))
+ggsave(g.comp.flux.tot,filename = paste(outfigs,"Figure8_CompareFluxesTOTALS.jpeg",sep=""))
+
 g.comp.flux.ha <- ggplot(data=comp.flux.ha,aes(x=Year,y=`MgC/ha`,group=interaction(Simulation,flux),
                                                  colour=interaction(Simulation,flux))) + 
   geom_line(size=1.2) + geom_hline() + ylab("MgC/ha") +
@@ -389,43 +403,52 @@ ha.dist.NIR <- ha.dist.NIR[,.(ha=sum(`Area Disturbed`)),by=.(DB_Source,Disturban
 # keep only 1990-2011
 ha.dist.NIR <- ha.dist.NIR[Year<2012]
 setkey(ha.dist.NIR,Year)
-# these next 4 lines if I want to do proportions
-# NIR.ha <- fread(paste(indir,"NIRComparison/NIR_areaCompare.csv",sep=""),sep=",",header=TRUE)
-# setkey(NIR.ha,Year)
-# ha.NIR <- merge(ha.dist.NIR,NIR.ha)
-# ha.NIR <- ha.NIR[,.(DB_Source,Disturbance,Year, percent=(ha.x/ha.y)*100)]
-# for proportions
-# ha.dist.percent <- rbind(ha.dist.spatial.percent,ha.NIR)
+
+## for WK
+# how much defore between 1990-2012
+NIRdefor <- ha.dist.NIR[Disturbance=="deforestation",sum(ha)]
+
 # for total ha
 ha.dist <- rbind(ha.dist.spatial,ha.dist.NIR)
+library(plyr)
+ha.dist$DB_Source <- revalue(x = ha.dist$DB_Source,c("Reporting"="Referenced","Spatial"="Spatially-Explicit"))
 
 g.dist.diff <- ggplot(data=ha.dist, aes(x=Year,y=ha/1000, 
                                          group=DB_Source,fill=interaction(DB_Source,Disturbance))) +
   geom_bar(stat="identity",position="dodge") + ylab("Mha") +scale_colour_manual(values=cbPalette)
-ggsave(g.dist.diff,file=paste(outfigs,"Figure11_CompareDistInHa.jpeg",sep=""))
+#ggsave(g.dist.diff,file=paste(outfigs,"Figure11_CompareDistInHa.jpeg",sep=""))
 
 g.dist.diff2 <- ggplot(data=ha.dist.percent, aes(x=Year,y=percent, 
                                         group=DB_Source,fill=interaction(DB_Source,Disturbance))) +
   geom_bar(stat="identity",position="dodge") + scale_colour_manual(values=cbPalette)
-ggsave(g.dist.diff,file=paste(outfigs,"Figure11_CompareDistPercent.jpeg",sep=""))
+#ggsave(g.dist.diff,file=paste(outfigs,"Figure11_CompareDistPercent.jpeg",sep=""))
 
 g.tot.diff <- ggplot(data=ha.dist, aes(x=Year,y=ha/1000000, group=DB_Source, fill=DB_Source)) +
   geom_bar(stat="identity",position="dodge") + ylab("Mha")
-ggsave(g.tot.diff,file=paste(outfigs,"Figure11_CompareDistTOTALinHa.jpeg",sep=""))
+ggsave(g.tot.diff,file=paste(outfigs,"Figure9a_CompareDistTOTALinHa.jpeg",sep=""))
 
 g.fire.diff <- ggplot(data=ha.dist[Disturbance=="fire"], aes(x=Year,y=ha/1000000, group=DB_Source, fill=DB_Source)) +
   geom_bar(stat="identity",position="dodge") + ylab("Mha")
-ggsave(g.fire.diff,file=paste(outfigs,"Figure11_CompareDistFIREha.jpeg",sep=""))
+ggsave(g.fire.diff,file=paste(outfigs,"Figure9b_CompareDistFIREha.jpeg",sep=""))
 
 g.harv.diff <- ggplot(data=ha.dist[Disturbance=="harvest"], aes(x=Year,y=ha/1000000, group=DB_Source, fill=DB_Source)) +
   geom_bar(stat="identity",position="dodge")  + ylab("Mha")
-ggsave(g.harv.diff,file=paste(outfigs,"Figure11_CompareDistHARVESTInHA.jpeg",sep=""))
-# g.harv.diff2 <- ggplot(data=ha.dist.percent[Disturbance=="harvest"], aes(x=Year,y=percent, group=DB_Source, fill=DB_Source)) +
-#   geom_bar(stat="identity",position="dodge") 
+ggsave(g.harv.diff,file=paste(outfigs,"Figure9c_CompareDistHARVESTInHA.jpeg",sep=""))
+
+# for percent of modelled area
+modelArea <- c(5713463,6586334)
+DB_Source <- c("Spatial","Reporting")
+totArea <- as.data.table(cbind(as.numeric(modelArea),DB_Source))
+setkey(totArea,DB_Source)
+setkey(ha.dist,DB_Source)
+ha.dist.percent <- merge(ha.dist,totArea)
+ha.dist.percent <- ha.dist.percent[,.(DB_Source,Disturbance,Year,ha,percent=ha/modelArea)]
+g.harv.diff2 <- ggplot(data=ha.dist.percent[Disturbance=="harvest"], aes(x=Year,y=percent, group=DB_Source, fill=DB_Source)) +
+  geom_bar(stat="identity",position="dodge") 
 # ggsave(g.harv.diff2,file=paste(outfigs,"Figure11_CompareDistHARVESTpercent.jpeg",sep=""))
 
-# g.defor.diff <- ggplot(data=ha.dist[Disturbance=="deforestation"], aes(x=Year,y=percent, group=DB_Source, fill=DB_Source)) +
-#   geom_bar(stat="identity",position="dodge") 
+g.defor.diff <- ggplot(data=ha.dist.percent[Disturbance=="deforestation"], aes(x=Year,y=percent, group=DB_Source, fill=DB_Source)) +
+  geom_bar(stat="identity",position="dodge") 
 # ggsave(g.defor.diff,file=paste(outfigs,"Figure11_CompareDistDEFOR.jpeg",sep=""))
 # 
 # g.mort20.diff <- ggplot(data=ha.dist[Disturbance=="mortality20"], aes(x=Year,y=percent, group=DB_Source, fill=DB_Source)) +
@@ -591,6 +614,28 @@ ggsave(g.spatialPlus.harvest,file=paste(outfigs,file="ResolvingNoCASFRIdist/AllL
 # graph differences
 # total
 diff.dist.tot <- spatial.plus[,.(tot.ha=sum(ha)),by=c("DB_Source","Year")]
+
+# second try to simplify
+# what is the difference between ha dist in NIR and ha dist in Spatial?
+t2.tot.diff <- diff.dist.tot[DB_Source=="Reporting"]$tot.ha - diff.dist.tot[DB_Source=="Spatial"]$tot.ha
+sum(t2.tot.diff)
+#[1] 947039
+
+# does this match what I had in the summary?
+year <- 1990:2011
+t2.g1 <- as.data.frame(cbind(year,t2.tot.diff))
+g.t2.tot <- ggplot(data=t2.g1,aes(x=year,y=t2.tot.diff/1000000)) + geom_line()
+# YES
+
+# does this equal the absolute differences if I calculate per dist type?
+
+t2.dist <- spatial.plus[,.(tot.ha=sum(ha)),by=c("DB_Source","Disturbance")]
+t2.dist<-t2.dist[order(DB_Source,Disturbance)]
+t2.diff.dist <- t2.dist[DB_Source=="Reporting"]$tot.ha - t2.dist[DB_Source=="Spatial"]$tot.ha
+sum(abs(t2.diff.dist))
+t2.diff.dist/sum(abs(t2.diff.dist))
+
+
 diff.tot <- diff.dist.tot[DB_Source=="Reporting",.(tot.ha)] - diff.dist.tot[DB_Source=="Spatial",.(tot.ha)]
 diffP.tot <- diff.dist.tot[DB_Source=="Reporting",.(tot.ha)] - diff.dist.tot[DB_Source=="Spatial+",.(tot.ha)]
 Year <-  c(rep(1990:2011,2))

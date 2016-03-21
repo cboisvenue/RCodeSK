@@ -17,9 +17,24 @@ output: word_document
 \newpage
 
 ## Figure 3. Tree-level measurements over plot age, by species for plots used for biomass prediction.
-![](figures/SK2000_TreeMeasAgeSps.jpeg)
 
 
+```{r echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, fig.width=8, fig.height=5}
+library(data.table)
+library(ggplot2)
+indir = "M:/Spatially_explicit/01_Projects/07_SK_30m/Working/CBoisvenue/CleanedUpForUsing/"
+
+psp.tree <- fread(paste(indir,"SK_2000TreeMeasurements.csv",sep=""),sep=",",header=TRUE)
+no.meas.psp <- psp.tree[,.(count = .N),by=dom]
+# better plot with a table
+library(gridExtra)
+g <- ggplot(data=psp.tree) + geom_histogram(aes(round(age), fill=SPECIES),colour="black") +
+  xlab("Plot age") + ylab("Number tree-level measurements") 
+#ggtitle("Measured Trees by Age and Species - SK 418") + 
+#theme(plot.title = element_text(lineheight=1.2, face="bold"))
+g+annotation_custom(tableGrob(no.meas.psp),xmin=175, xmax=225,ymin=14000,ymax=75000) +
+  theme_bw()
+```
 
 \newpage
 
@@ -39,7 +54,8 @@ pspAvgBiom.yr <- biom.ha.psp[,.(mean=mean(biom.ha),sd=sd(biom.ha),no.plot=.N),by
 pspAvgBiom.yr <- pspAvgBiom.yr[!is.na(sd)]
 fig4 <- ggplot(data=pspAvgBiom.yr,aes(YEAR,mean))
 fig4 + geom_point(aes(size=no.plot),colour="blue") + ylab("Mg/ha") + 
-  geom_errorbar(aes(ymin=(mean)-1.96*(sd),ymax=(mean)+1.96*(sd)))
+  geom_errorbar(aes(ymin=(mean)-1.96*(sd),ymax=(mean)+1.96*(sd))) +
+  theme_bw()
 
 
 ```
@@ -50,7 +66,7 @@ fig4 + geom_point(aes(size=no.plot),colour="blue") + ylab("Mg/ha") +
 ```{r echo=FALSE, message=FALSE,fig.width=8, fig.height=5}
 library(data.table)
 library(ggplot2)
-raster.biom <- fread("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/growth/biomassHaEvaluation/RasterAvg_SD.txt",sep="\t",header=TRUE)
+raster.biom <- fread("M:/Spatially_explicit/01_Projects/07_SK_30m/Working/growth/biomassHaEvaluation/RasterAvg_SD_constantPixels.txt",sep=",",header=TRUE)
 setnames(raster.biom,names(raster.biom),c("YEAR","mean","sd"))
 # add PSP info from Figure 4
 indir <- "M:/Spatially_explicit/01_Projects/07_SK_30m/Working/CBoisvenue/CleanedUpForUsing/"
@@ -64,8 +80,9 @@ allABG.ha.yr <- cbind(allABG.ha.yr,Source)
 
 fig5 <- ggplot(data=allABG.ha.yr,aes(YEAR,mean,group=Source,colour=Source, fill=Source)) + 
   geom_point() + geom_line() + geom_errorbar(aes(ymin=(mean)-1.96*(sd),ymax=(mean)+1.96*(sd)))+
+  ylab("Mg/ha") +
   scale_colour_manual(values=c("black", "red"))
-fig5
+fig5 +theme_bw()
 ```
 
 \newpage
@@ -86,8 +103,8 @@ error2 <- as.data.frame(ranef(mem7)$PLOT_ID)
 names(error2) <- "Intercept"
 plot.er2 <- ggplot(data=error2,aes(sample=Intercept)) +stat_qq(shape=1) +
   geom_abline(intercept = mean(error2$Intercept), slope = sd(error2$Intercept), size=1) 
-plot.er1
-plot.er2
+plot.er1 +theme_bw()
+plot.er2 +theme_bw()
 
 ```
 
@@ -96,31 +113,6 @@ plot.er2
 ## Figure 7. Predicted biomass per ha increments (MgC/ha) from the mixed effect model fit on the field-based for each of nine strata modelled.
 ![](figures/fig7_v1.jpeg)
 
-```{r echo=FALSE,message=FALSE,warning=FALSE}
-# Not sure why this did not work
-#library(lme4)
-
-# load the model, it is names mem7
-#load(file = "M:/Spatially_explicit/01_Projects/07_SK_30m/Working/growth/MEM_t_haPSP/MEM_t_ha.Rdata")
-
-#library (ggplot2)
-
-#plot.age <- rep(1:250) #this is my x-axis
-#l.age <-log(plot.age) # in the right transmormation
-#topredMM <- as.data.frame(cbind(plot.age,l.age)) # put them together
-#names(topredMM) = c("age1","l.age") # name them the same this as in the fitting data
-#stratum <- sort(rep(c("BF","BP","BSG","BSM","JP","TAG","TAM","WB","WSG"),250)) # same number of 
-# strata as in the fit.data
-#topredMM <- cbind(stratum,topredMM)
-#names(topredMM) = c("stratum","age1","l.age") # name them the same this as in the fitting data
-#NoWSMlhat2 <- predict(mem7,newdata=topredMM)
-#NoWSMhat2 <- exp(NoWSMlhat2)
-#NoWSMpred2 <- cbind(topredMM,NoWSMhat2,NoWSMlhat2)
-#fig7 <- ggplot(data=NoWSMpred2,aes(x=age1,y=NoWSMhat2,group=stratum,colour=stratum,linetype=stratum)) + 
-#  geom_line(size=1) + xlab("Age") + ylab("MgC/ha") + theme(legend.position=c(0.9,0.62))
-#fig7
-
-```
 
 
 \newpage
@@ -174,6 +166,89 @@ b1.plot <- ggplot(data=b1psp, aes(y=value,x=stratum)) +
 #  ggtitle("Slope for logAge comparison, RS and PSP") +
   theme(plot.title=element_text(face="bold",size=20)) + theme_gray()
 b1.plot2 <- b1.plot + geom_point(data=b1.modes,aes(x=stratum,y=mode,colour="red", size=2))+ theme(legend.position="none")
-b1.plot2 + geom_point(data=b2.mode,aes(x=stratum,y=mode,colour="red", size=2))+ theme(legend.position="none")
+b1.plot2 + geom_point(data=b2.mode,aes(x=stratum,y=mode,colour="red", size=2))+ theme(legend.position="none") 
 ```
+
+\newpage
+
+## Figure 9. An example of the range of biomass increment curves for Balsam Poplar (BP) that can be extracted from the range of possible coefficient values fittes to the pixel-estimates of biomass increments.
+```{r echo=FALSE,message=FALSE,warning=FALSE,fig.width=8, fig.height=5}
+paramsPA <- fread(paste(indir,"DeltaBiomRsParams.txt",sep=""),sep=",",header=TRUE)
+
+# Make a data.table with mean, mode, and variations and plot
+# RasterID 719952  -0.15420083
+age <- 1:250
+l.age <- log(age)
+params.BP <- paramsPA[stratum=="BP"]
+BP.b <- cbind(params.BP[b=="b0",.(b0=value)],params.BP[b=="b1",.(b1=value)])
+# RasterID 719952  -0.15420083
+l.BPmean <- BP.b[,mean(b0)]+-0.15420083 + BP.b[,mean(b1)]*log(age) + paramsPA[b=="b2",mean(value)]*age
+BPhatmean <- exp(l.BPmean)
+#plot(age,BPhatmean)
+# this works...
+#hist(BP.b$ b0)
+# play around with values of b0
+l.BPb0s1 <- -5+-0.15420083 + BP.b[,mean(b1)]*log(age) + paramsPA[b=="b2",mean(value)]*age
+BPhatmeanb0s1 <- exp(l.BPb0s1)
+#plot(age,BPhatmeanb0s1)
+l.BPb0s2 <- -10+-0.15420083 + BP.b[,mean(b1)]*log(age) + paramsPA[b=="b2",mean(value)]*age
+BPhatmeanb0s2 <- exp(l.BPb0s2)
+#plot(age,BPhatmeanb0s2)
+# played from -30 to +10, still looks like a growth curve
+#hist(BP.b$ b1)
+l.BPb1s1 <- BP.b[,mean(b0)]+-0.15420083 + 1.85*log(age) + paramsPA[b=="b2",mean(value)]*age
+BPhatmeanb1s1 <- exp(l.BPb1s1)
+#plot(age,BPhatmeanb1s1)
+l.BPb1s2 <- BP.b[,mean(b0)]+-0.15420083 + 0.5*log(age) + paramsPA[b=="b2",mean(value)]*age
+BPhatmeanb1s2 <- exp(l.BPb1s2)
+#plot(age,BPhatmeanb1s2)
+#hist(paramsPA[b=="b2"]$value)
+#paramsPA[b=="b2", mean(value)]
+l.BPb2s1 <- BP.b[,mean(b0)]+-0.15420083 + BP.b[,mean(b1)]*log(age) + -0.0070*age
+BPhatb2s1 <- exp(l.BPb2s1)
+#plot(age,BPhatb2s1)
+l.BPb2s2 <- BP.b[,mean(b0)]+-0.15420083 + BP.b[,mean(b1)]*log(age) + -0.0070*age
+BPhatb2s2 <- exp(l.BPb2s2)
+#plot(age,BPhatb2s2)
+# from -0.0080 to -0.0070 still looks like a growth curve
+
+modeCalc <- function(data) {
+  # Function for mode estimation of a continuous variable
+  # Kernel density estimation by Ted Harding & Douglas Bates (found on RSiteSearch)	
+  x<-data
+  lim.inf=min(x)-1; lim.sup=max(x)+1
+  
+  hist(x,freq=FALSE,breaks=seq(lim.inf,lim.sup,0.2))
+  s<-density(x,from=lim.inf,to=lim.sup,bw=0.2)
+  n<-length(s$y)
+  v1<-s$y[1:(n-2)];
+  v2<-s$y[2:(n-1)];
+  v3<-s$y[3:n]
+  ix<-1+which((v1<v2)&(v2>v3))
+  
+  lines(s$x,s$y,col="red")
+  points(s$x[ix],s$y[ix],col="blue")
+  
+  md <- s$x[which(s$y==max(s$y))] 
+  
+  return(md)
+  
+}
+
+#paramsPA[b=="b2", modeCalc(value)]
+#BP.b[,modeCalc(b0)]
+l.BPmode <- BP.b[,modeCalc(b0)]+-0.15420083 + BP.b[,modeCalc(b1)]*log(age) + paramsPA[b=="b2",modeCalc(value)]*age
+BPhatmode <- exp(l.BPmode)
+#plot(age,BPhatmode)
+
+# data.table
+BP.c1 <- as.data.table(cbind(age,BPhatmode,BPhatmean,BPhatb2s2,BPhatb2s1,BPhatmeanb1s2,BPhatmeanb1s1,BPhatmeanb0s2,BPhatmeanb0s1))
+setnames(BP.c1,names(BP.c1),c("age","mode","mean","b2s2","b2s1","b1s2","b1s1","b0s2","b0s2"))
+BPcurves <- melt(BP.c1, id.vars = c("age"),
+                variable.name = "curve", value.name = "yhat")
+#g.BPcurves <- ggplot(BPcurves[curve!="b0s2" & curve!="b0s1"],aes(x=age,y=yhat,group=curve,colour=curve)) + geom_point()
+g.BPcurves <- ggplot(BPcurves[curve=="b0s2"],aes(x=age,y=yhat,group=curve,colour=curve)) + geom_line() +ylab("Mg/ha")+theme_bw() +
+  theme(legend.position="none") 
+g.BPcurves 
+````
 
