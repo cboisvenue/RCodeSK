@@ -16,24 +16,33 @@ output: word_document
 
 \newpage
 
-## Figure 3. Tree-level measurements over plot age, by species for plots used for biomass prediction.
+## Figure 3. Tree-level measurements over plot age in the re-measured permanent field plots, by species for plots used for biomass prediction.
 
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, fig.width=8, fig.height=5}
 library(data.table)
 library(ggplot2)
+library(plyr)
+library(dplyr)
 indir = "M:/Spatially_explicit/01_Projects/07_SK_30m/Working/CBoisvenue/CleanedUpForUsing/"
 
 psp.tree <- fread(paste(indir,"SK_2000TreeMeasurements.csv",sep=""),sep=",",header=TRUE)
 no.meas.psp <- psp.tree[,.(count = .N),by=dom]
 # better plot with a table
 library(gridExtra)
+# addressing Rev1 comment
+# get rid of MM and TL
+psp.tree <- psp.tree[SPECIES!="MM"]
+psp.tree <- psp.tree[SPECIES!="TL"]
+psp.tree$SPECIES <- mapvalues(psp.tree$SPECIES,unique(psp.tree$SPECIES),c("Black Spruce","White Spruce","Balsam Poplar","White Birch","Trembling Aspen","Jack Pine","Balsam Fir"))
+
 g <- ggplot(data=psp.tree) + geom_histogram(aes(round(age), fill=SPECIES),colour="black") +
   xlab("Plot age") + ylab("Number tree-level measurements") 
+
 #ggtitle("Measured Trees by Age and Species - SK 418") + 
 #theme(plot.title = element_text(lineheight=1.2, face="bold"))
 g+annotation_custom(tableGrob(no.meas.psp),xmin=175, xmax=225,ymin=14000,ymax=75000) +
-  theme_bw()
+  theme_bw() + scale_fill_discrete(breaks=c("Black Spruce","White Spruce","Jack Pine","Trembling Aspen","White Birch","Balsam Poplar","Balsam Fir")) + theme(legend.position=c(0.6,0.52),legend.key.size = unit(1.5, "lines")) #legend.text = element_text(size = 14)
 ```
 
 \newpage
@@ -85,39 +94,36 @@ fig5 <- ggplot(data=allABG.ha.yr,aes(YEAR,mean,group=Source,colour=Source, fill=
 fig5 +theme_bw()
 ```
 
-\newpage
-
-## Figure 6. Checking the assumptions for the linear mixed effect model fit to field plots. Top panel: residuals for the linear mixed effects model of biomass increment fit to the field data. Bottom panel: quantile plot comparing the random effect residuals for mixed effect model fit to field plot data to a normal distribution.
 ```{r echo=FALSE,message=FALSE,warning=FALSE,fig.width=8, fig.height=5}
-library(lme4)
-
-# load the model, it is names mem7
-load(file = "M:/Spatially_explicit/01_Projects/07_SK_30m/Working/growth/MEM_t_haPSP/MEM_t_ha.Rdata")
-
-library (ggplot2)
-error1 <- as.data.frame(cbind(c(1:1353),residuals(mem7)))
-names(error1) = c("Index","Error")
-plot.er1 <- ggplot(data=error1, aes(Index,Error)) + geom_point(size=2) +
-  geom_hline(aes(yintercept=0),size=1)
-error2 <- as.data.frame(ranef(mem7)$PLOT_ID)
-names(error2) <- "Intercept"
-plot.er2 <- ggplot(data=error2,aes(sample=Intercept)) +stat_qq(shape=1) +
-  geom_abline(intercept = mean(error2$Intercept), slope = sd(error2$Intercept), size=1) 
-plot.er1 +theme_bw()
-plot.er2 +theme_bw()
+# library(lme4)
+# 
+# # load the model, it is names mem7
+# load(file = "M:/Spatially_explicit/01_Projects/07_SK_30m/Working/growth/MEM_t_haPSP/MEM_t_ha.Rdata")
+# 
+# library (ggplot2)
+# error1 <- as.data.frame(cbind(c(1:1353),residuals(mem7)))
+# names(error1) = c("Index","Error")
+# plot.er1 <- ggplot(data=error1, aes(Index,Error)) + geom_point(size=2) +
+#   geom_hline(aes(yintercept=0),size=1)
+# error2 <- as.data.frame(ranef(mem7)$PLOT_ID)
+# names(error2) <- "Intercept"
+# plot.er2 <- ggplot(data=error2,aes(sample=Intercept)) +stat_qq(shape=1) +
+#   geom_abline(intercept = mean(error2$Intercept), slope = sd(error2$Intercept), size=1) 
+# plot.er1 +theme_bw()
+# plot.er2 +theme_bw()
 
 ```
 
 \newpage
 
-## Figure 7. Predicted biomass per ha increments (MgC/ha) from the mixed effect model fit on the field-based for each of nine strata modelled.
+## Figure 6. Predicted biomass per ha increments per year (MgC ha^-1^ yr^-1^) from the mixed effect model fit on the field-based tree measurements for each of nine strata modelled.
 ![](figures/fig7_v1.jpeg)
 
 
 
 \newpage
 
-## Figure 8. Parameter values resulting from fitting the log of Hoerl's fucntion to field-based observations (purple) of biomass change for the PAFMA in Saskatchewan Canada compared to the range of parameter values obtained by fitting the log of Hoerl's function to 100 samples of pixel-based estimates of yearly biomass change. The top panel shows the intercept values for each of the nine strata, and the bottom panel shows the parameter values for the slopes, nine for b1 (one per strata) and one for b2 (x-label "ALL").
+## Figure 7.Parameter values resulting from fitting the log of Hoerl's fucntion to field-based observations (purple) of biomass change for the PAFMA in Saskatchewan Canada compared to the range of parameter values obtained by fitting the log of Hoerl's function to 100 samples (280 000 observations per sample) of pixel-based estimates of yearly biomass change. The top panel shows the intercept values for each of the nine strata, and the bottom panel shows the parameter values for the slopes, nine for b1 (one per strata) and one for b2 (x-label "ALL").
 ```{r echo=FALSE,message=FALSE,warning=FALSE,fig.width=8, fig.height=5}
 library(data.table)
 library(ggplot2)
@@ -151,9 +157,9 @@ b0.plot <- ggplot(data=b0psp, aes(y=value,x=stratum)) +
   geom_boxplot(data=b0rs,aes(x=stratum,y=value,alpha=0.2)) +
   theme(legend.position="none") +
   #ggtitle("Intercept values comparison, RS and PSP") +
-  theme(plot.title=element_text(face="bold",size=20)) + theme_gray() 
+  theme(plot.title=element_text(face="bold",size=20)) + theme_gray() + ylab("Intercept")
   
-b0.plot + geom_point(data=b0.modes,aes(x=stratum,y=mode,colour="red", size=2)) +theme(legend.position="none")
+b0.plot + geom_point(data=b0.modes,aes(x=stratum,y=mode,colour="red")) +theme(legend.position="none")
 
 # second graph
 b1psp <- psp[b=="b1" | b=="b2"]
@@ -164,14 +170,14 @@ b1.plot <- ggplot(data=b1psp, aes(y=value,x=stratum)) +
   geom_boxplot(data=b1rs,aes(x=stratum,y=value,alpha=0.2)) +
 # theme(legend.position="none") +
 #  ggtitle("Slope for logAge comparison, RS and PSP") +
-  theme(plot.title=element_text(face="bold",size=20)) + theme_gray()
-b1.plot2 <- b1.plot + geom_point(data=b1.modes,aes(x=stratum,y=mode,colour="red", size=2))+ theme(legend.position="none")
-b1.plot2 + geom_point(data=b2.mode,aes(x=stratum,y=mode,colour="red", size=2))+ theme(legend.position="none") 
+  theme(plot.title=element_text(face="bold",size=20)) + theme_gray() + ylab("Slopes")
+b1.plot2 <- b1.plot + geom_point(data=b1.modes,aes(x=stratum,y=mode,colour="red"))+ theme(legend.position="none")
+b1.plot2 + geom_point(data=b2.mode,aes(x=stratum,y=mode,colour="red"))+ theme(legend.position="none") 
 ```
 
 \newpage
 
-## Figure 9. An example of the range of biomass increment curves for Balsam Poplar (BP) that can be extracted from the range of possible coefficient values fittes to the pixel-estimates of biomass increments.
+## Figure 8. An example of the range of biomass increment curves for Balsam Poplar (BP) that can be extracted from the range of possible coefficient values fitted to the pixel-estimates of biomass increments.
 ```{r echo=FALSE,message=FALSE,warning=FALSE,fig.width=8, fig.height=5}
 paramsPA <- fread(paste(indir,"DeltaBiomRsParams.txt",sep=""),sep=",",header=TRUE)
 

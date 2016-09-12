@@ -37,6 +37,7 @@ fig4 + geom_point(aes(size=no.plot),colour="blue") + ylab("Mg/ha") +
   geom_errorbar(aes(ymin=(mean)-1.96*(sd),ymax=(mean)+1.96*(sd)))
 ## Same "gaps" 1999-2005, and 1974-1978
 tree.biom <- read.table(paste(indir,"SK_2000TreeBiomass.csv",sep=""),sep=",",header=TRUE)
+tree.biom <- as.data.table(tree.biom)
 count.trees <- tree.biom[,.(no.trees = .N),by=c("YEAR","PLOT_ID")]
 check.gap1 <- count.trees[(YEAR>1974 & YEAR<1978)|(YEAR>1999 & YEAR<2005)]
 #There are not plots measured in those years.
@@ -167,7 +168,11 @@ plot.age <- rep(1:250) #this is my x-axis
 l.age <-log(plot.age) # in the right transmormation
 topredMM <- as.data.frame(cbind(plot.age,l.age)) # put them together
 #names(topredMM) = c("age1","l.age") # name them the same this as in the fitting data
-stratum <- sort(rep(c("BF","BP","BSG","BSM","JP","TAG","TAM","WB","WSG"),250)) # same number of 
+# stratum <- sort(rep(c("BF - Balsam Fir","BP - Balsam Poplar","BSG - Black Spruce Good","BSM - Black Spruce Medium",
+#                       "JP - Jack Pine","TAG - Trembling Aspen","TAM - Trembling Aspen","WB - White Birch","WS - White Spruce"),250)) # same number of 
+stratum <- sort(rep(c("BF","BP","BSG","BSM",
+                      "JP","TAG","TAM","WB","WSG"),250)) # same number of 
+
 # strata as in the fit.data
 plots <- sample(fit.data$PLOT_ID,9)
 PLOT_ID <- sort(rep(plots,250))
@@ -176,8 +181,13 @@ names(topredMM) = c("PLOT_ID","stratum","age1","l.age") # name them the same thi
 NoWSMlhat2 <- predict(modl,newdata=topredMM)
 NoWSMhat2 <- exp(NoWSMlhat2)
 NoWSMpred2 <- cbind(topredMM,NoWSMhat2,NoWSMlhat2)
+library(plyr)
+NoWSMpred2$stratum <- mapvalues(NoWSMpred2$stratum,unique(NoWSMpred2$stratum),c("BF - Balsam Fir",
+                      "BP - Balsam Poplar","BSG - Black Spruce Good","BSM - Black Spruce Medium",
+                      "JP - Jack Pine","TAG - Trembling Aspen Good","TAM - Trembling Aspen Medium",
+                      "WB - White Birch","WS - White Spruce"))
 fig7 <- ggplot(data=NoWSMpred2,aes(x=age1,y=NoWSMhat2,group=stratum,colour=stratum,linetype=stratum)) + 
-  geom_line(size=1) + xlab("Age") + ylab("MgC/ha")+ theme_bw() + theme(legend.position=c(0.9,0.62))
+  geom_line(size=1) + xlab("Age") + ylab("MgC ha-1 ")+ theme_bw() + theme(legend.position=c(0.8,0.62))
 fig7 
 ggsave(file="C:/Celine/GitHub/RCodeSK/figures/fig7_v1.jpeg")
 NoWSM <- as.data.table(NoWSMpred2)

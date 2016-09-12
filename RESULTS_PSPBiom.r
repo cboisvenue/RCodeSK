@@ -21,7 +21,7 @@ tree.biom <- as.data.table(tree.biom)
 # sum per plot, yr, sps
 plot.biom <- tree.biom[,.(tot.biom = sum(biomass),dom = first(dom),age=round(mean(age))),by=.(PLOT_ID,YEAR,SPECIES)]
 # get plot sizes
-plotInfo <- read.table("C:/Celine/CelineSync/RES_Work/Work/JoanneWhite/SK_work/GrowthRaster/BiomassEstimation/measurement_header.csv",sep=",", header=TRUE)
+plotInfo <- read.table("C:/Celine/Syndocs/RES_Work/Work/JoanneWhite/SK_work/GrowthRaster/BiomassEstimation/measurement_header.csv",sep=",", header=TRUE)
 plotInfo <- as.data.table(plotInfo)
 plotSize <- plotInfo[,.(PLOT_ID,PLOT_SIZE)]
 plotSize <- unique(plotSize)
@@ -31,6 +31,18 @@ setkey(plotSize,PLOT_ID)
 setkey(strata,PLOT_ID)
 plot.biom.ha <- merge(plot.biom,plotSize)
 plot.biom.ha[,kg.ha := (tot.biom/PLOT_SIZE)]
+
+# how much land sampled?
+length(unique(plot.biom.ha$PLOT_ID))
+#[1] 1381
+dim(plot.biom.ha)
+#[1] 11018     8
+length(unique(plot.biom.ha$PLOT_SIZE))
+#[1] 3
+unique(plot.biom.ha$PLOT_SIZE)
+#[1] 0.0809 0.0600 0.0800
+
+
 
 psp <- merge(plot.biom.ha,strata)
 write.table(psp,file="G:/RES_Work/Work/JoanneWhite/SK_work/WritingBin/figures/PSPTableForFigure2.txt",sep=",",row.names = FALSE)
