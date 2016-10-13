@@ -94,9 +94,10 @@ growth <- cbind(growth1[,stratum:= NULL],strata)
 growth<- melt(growth,id.vars = c("dom","prodClass","strata"),
               variable.name = "Age", value.name = "TotVol")
 g3 <- ggplot(data=growth,aes(x=as.numeric(Age),y=TotVol,group=strata,colour=strata,linetype=strata)) + 
-  geom_line(size=1) + ylab("m3/ha") + scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7","black"))
+  geom_line(size=1) + ylab("m3/ha/yr") + xlab("Plot Age") + theme(legend.position=c(0.075,0.7)) +
+  scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7","black"))
 ggsave(file=paste(outfigs,"growthCurves.jpeg",sep=""))
-
+g3+
 #+  scale_fill_brewer(palette="Spectral")
 # end of growth curves-----------------------------------------------------
 
